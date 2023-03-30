@@ -1,0 +1,93 @@
+/* 테트리스 화면 index.html의 css */
+
+#tetris {
+    width: 300px;
+    height: 600px;
+    margin: 0 auto;
+    border: 1px solid #000;
+    background-color: #000;
+    position: relative;
+}
+
+#tetris #next {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  border: 1px solid #000;
+  background-color: #000;
+  position: relative;
+}
+
+#tetris #board {
+  width: 300px;
+  height: 600px;
+  margin: 0 auto;
+  border: 1px solid #000;
+  background-color: #000;
+  position: relative;
+}
+
+#tetris #score {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  border: 1px solid #000;
+  background-color: #000;
+  position: relative;
+}
+
+#tetris .block {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    background-color: #fff;
+}
+
+#tetris .block1 {
+    background-color: #f00;
+}
+
+#tetris .block2 {
+    background-color: #0f0;
+}
+
+#tetris .block3 {
+    background-color: #00f;
+}
+
+#tetris .block4 {
+    background-color: #ff0;
+}
+
+#tetris .block5 {
+    background-color: #f0f;
+}
+
+#tetris .block6 {
+    background-color: #0ff;
+}
+
+#tetris .block7 {
+    background-color: #888;
+}
+
+#tetris .block8 {
+    background-color: #000;
+}
+
+#tetris .block9 {
+    background-color: #fff;
+}
+
+#tetris .block10 {
+    background-color: #f00;
+}
+
+#tetris .block11 {
+    background-color: #0f0;
+}
+
+#tetris .block12 {
+    background-color: #00f;
+}
+

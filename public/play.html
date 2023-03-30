@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>대전 테트리스</title>
+  <link rel="stylesheet" type="text/css" href="/tetris.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+  <script src="/tetris.js"></script>
+</head>
+<body>
+	<h1>대전 테트리스</h1>
+  <!-- 테트리스 화면 구조 -->
+  <div id="tetris">
+    <div id="next">
+      <h2>다음 블록</h2>
+      <div id="next-block"></div>
+    </div>
+    <div id="board">
+      <h2>게임 화면</h2>
+      <div id="board-block"></div>
+    </div>
+    <div id="score">
+      <h2>점수</h2>
+      <div id="score-block"></div>
+    </div>
+  </div>
+</body>
+</html>
