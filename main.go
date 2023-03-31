@@ -4,6 +4,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -12,24 +13,27 @@ import (
 // 웹 서버를 실행하는 함수
 func runServer() {
 
+	// 웹소켓 핸들러 생성한다.
+	wsServer := NewWebsocketServer()
+	go wsServer.Run()
+
 	r := gin.Default()
 	r.Use(static.Serve("/", static.LocalFile("public", true)))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
-	// 웹 소켓 서버를 생성한다.
-	wsServer := NewWebsocketServer()
-
 	// websocker 통신을 위한 라우팅을 추가한다.
-	r.GET("/ws", func(c *gin.Context) {
-		serveWs(c, "list", wsServer)
+	r.GET("/ws/:room", func(c *gin.Context) {
+		serveWs(c, c.Param("room"), wsServer)
 	})
 
 	r.Run(":8080")
 }
 
 func main() {
+
+	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 
 	runServer()
 

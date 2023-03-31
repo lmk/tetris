@@ -2,24 +2,56 @@
 
 // room list를 조회하면, room list를 화면에 표시한다.
 
-var socket = null;
+var ws;
+var print = function(message) {
+    console.log(message);
+};
+
+var send = function(action, msg) {
+  let data = {
+    action: action,
+    sender: $('#nick').val,
+    msg: msg
+  };
+
+  print(ws)
+  print(JSON.stringify(data))
+
+  ws.send(JSON.stringify(data));
+}
 
 // 화면 로딩
 window.onload = function() {
 
   // myNick 생성
-  var myNick = 'user' + Math.floor(Math.random() * 1000);
-  $('#myNick').html(myNick);
+  let myNick = 'user' + Math.floor(Math.random() * 1000);
+  $('#nick').val(myNick);
 
   // websocket 연결
-  socket =
+  ws = new WebSocket("ws://localhost:8080/ws/list");
+  ws.onopen = function(evt) {
+    print("OPEN");
 
+    // sleep 1초 room list 조회
+   // setTimeout(() => send('list-room', ""), 1000)
+  }
 
-  //socket = io.connect('http://localhost:3000');
+  ws.onclose = function(evt) {
+    print("CLOSE");
+    ws = null;
+  }
+
+  ws.onmessage = function(evt) {
+    print("RESPONSE: " + evt.data);
+  }
+  ws.onerror = function(evt) {
+      print("ERROR: " + evt.data);
+  }
 
   // room list 조회
-  socket.emit('list-room');
-
+  //ws.send('list-room');
+  //socket.emit('list-room');
+/*
   // room list 화면 표시
   socket.on('list-room', function(data) {
     var roomList = data.roomList;
@@ -29,7 +61,7 @@ window.onload = function() {
       $('#roomList').append('<div class="room" id="'+room.name+'">' + room.name + '<button class="joinButton">JOIN</button></div>');
     }
   });
-
+*/
   // newGame 버튼 을 클릭하면 새로운 방을 만든다.
   var newGameButton = document.getElementById('newGame');
   newGameButton.addEventListener('click', function() {
