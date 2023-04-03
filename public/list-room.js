@@ -10,15 +10,45 @@ var print = function(message) {
 var send = function(action, msg) {
   let data = {
     action: action,
-    sender: $('#nick').val,
+    sender: $('#nick').val(),
     msg: msg
   };
 
   print(ws)
   print(JSON.stringify(data))
 
-  ws.send(JSON.stringify(data));
+  if (ws != null && ws.readyState == 1) {
+    ws.send(JSON.stringify(data));
+  } else {
+    print("websocket is not connected");
+  }
 }
+
+var messageHandler = function(data) {
+  print("RECV");
+  switch (data.action) {
+    case 'list-room':
+      print(data);
+      break;
+
+    case 'new-room':
+      print(data);
+      break;
+
+    case 'join-room':
+      print(data);
+      break;
+
+    case 'leave-room':
+      print(data);
+      break;
+
+    default:
+      print(data);
+      break;
+  }
+}
+
 
 // 화면 로딩
 window.onload = function() {
@@ -33,7 +63,7 @@ window.onload = function() {
     print("OPEN");
 
     // sleep 1초 room list 조회
-   // setTimeout(() => send('list-room', ""), 1000)
+    setTimeout(() => send('list-room', ""), 1000)
   }
 
   ws.onclose = function(evt) {
@@ -43,6 +73,9 @@ window.onload = function() {
 
   ws.onmessage = function(evt) {
     print("RESPONSE: " + evt.data);
+    var data = JSON.parse(evt.data);
+    messageHandler(data);
+
   }
   ws.onerror = function(evt) {
       print("ERROR: " + evt.data);
@@ -50,7 +83,6 @@ window.onload = function() {
 
   // room list 조회
   //ws.send('list-room');
-  //socket.emit('list-room');
 /*
   // room list 화면 표시
   socket.on('list-room', function(data) {
@@ -65,13 +97,13 @@ window.onload = function() {
   // newGame 버튼 을 클릭하면 새로운 방을 만든다.
   var newGameButton = document.getElementById('newGame');
   newGameButton.addEventListener('click', function() {
-    socket.emit('new-room');
+    send('new-room', "")
   });
 
   // joinButton 을 클릭하면 방에 입장한다.
   $('.joinButton').click(function() {
     var roomName = $(this).parent().attr('id');
-    socket.emit('join-room', {name: roomName});
+    send('join-room', roomName)
   });
 
 }
