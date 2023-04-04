@@ -2,19 +2,21 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
-	roomId string
+	roomId int
 	nick   string
 	socket *websocket.Conn
 	send   chan *Message
 	ws     *WebsocketServer
 }
 
-func NewClient(roomId string, conn *websocket.Conn, ws *WebsocketServer) *Client {
+func NewClient(roomId int, conn *websocket.Conn, ws *WebsocketServer) *Client {
 
 	// 웹 소켓 클라이언트를 생성한다.
 	return &Client{
@@ -24,6 +26,17 @@ func NewClient(roomId string, conn *websocket.Conn, ws *WebsocketServer) *Client
 		ws:     ws,
 		send:   make(chan *Message),
 	}
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+func getRandomNick() string {
+
+	n := rand.Intn(9999)
+
+	return fmt.Sprintf("user%d", n)
 }
 
 func (client *Client) Read() {
@@ -46,6 +59,8 @@ func (client *Client) Read() {
 			break
 		}
 
+		Info.Printf("[READ] %v", msg)
+
 		client.ws.broadcast <- &msg
 	}
 }
@@ -59,10 +74,11 @@ func (client *Client) Write() {
 	for {
 		select {
 		case message, ok := <-client.send:
-			Info.Printf("WRITE %v %v", ok, message)
+			Info.Printf("[WRITE] %v %v", ok, message)
 			if !ok {
 				// The ws closed the channel.
 				client.socket.WriteMessage(websocket.CloseMessage, []byte{})
+				return
 			} else {
 				err := client.socket.WriteJSON(message)
 				if err != nil {

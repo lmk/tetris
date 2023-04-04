@@ -1,93 +1,23 @@
-/* 테트리스 화면 index.html의 css */
+.block
+{
+    width:28px;
+    height:25px;
+    background:linear-gradient(to bottom,#A8CFF1,#81B6E4) !important;
+    border:1px solid white;
 
-#tetris {
-    width: 300px;
-    height: 600px;
-    margin: 0 auto;
-    border: 1px solid #000;
-    background-color: #000;
-    position: relative;
 }
 
-#tetris #next {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto;
-  border: 1px solid #000;
-  background-color: #000;
-  position: relative;
+.cell
+{
+    width:28px;
+    height:25px;
+    /*background:linear-gradient(to bottom,#A8CFF1,#81B6E4);*/
+    background:gray;
+
 }
 
-#tetris #board {
-  width: 300px;
-  height: 600px;
-  margin: 0 auto;
-  border: 1px solid #000;
-  background-color: #000;
-  position: relative;
+.animate
+{
+    background:linear-gradient(to bottom,#7CEEB9,#4EEFA4) !important;
+    transition:all 0.3s linear;
 }
-
-#tetris #score {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto;
-  border: 1px solid #000;
-  background-color: #000;
-  position: relative;
-}
-
-#tetris .block {
-    width: 30px;
-    height: 30px;
-    position: absolute;
-    background-color: #fff;
-}
-
-#tetris .block1 {
-    background-color: #f00;
-}
-
-#tetris .block2 {
-    background-color: #0f0;
-}
-
-#tetris .block3 {
-    background-color: #00f;
-}
-
-#tetris .block4 {
-    background-color: #ff0;
-}
-
-#tetris .block5 {
-    background-color: #f0f;
-}
-
-#tetris .block6 {
-    background-color: #0ff;
-}
-
-#tetris .block7 {
-    background-color: #888;
-}
-
-#tetris .block8 {
-    background-color: #000;
-}
-
-#tetris .block9 {
-    background-color: #fff;
-}
-
-#tetris .block10 {
-    background-color: #f00;
-}
-
-#tetris .block11 {
-    background-color: #0f0;
-}
-
-#tetris .block12 {
-    background-color: #00f;
-}
-

@@ -3,20 +3,40 @@
 <head>
 	<meta charset="utf-8">
 	<title>대전 테트리스</title>
-  <link rel="stylesheet" type="text/css" href="list-room.css">
+  <link rel="stylesheet" type="text/css" href="room.css">
+  <link rel="stylesheet" type="text/css" href="tetris.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <!--script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script-->
-  <script src="/list-room.js"></script>
+  <script src="/ws.js"></script>
+  <script src="/tetris.js"></script>
 </head>
 <body>
 	<h1>대전 테트리스</h1>
-  <h2>방 목록</h2>
-  <!-- 내 이름 표시 text box-->
-  <input type="text" id="nick" placeholder="닉네임을 입력하세요">
-  <!-- 새 개임 버튼 -->
-  <button id="newGame">새 게임</button>
-  <!-- 방 목록 -->
-  <div id="roomList">
+  <div id="game">
+    <div id="tetris">
+      <div id="next">
+        <h2>다음 블록</h2>
+        <div id="gamePreviewMap"></div>
+      </div>
+      <div id="board">
+        <h2>게임 화면</h2>
+        <div id="gameMap"></div>
+      </div>
+      <div id="score">
+        <h2>점수</h2>
+        <div id="gameScore"></div>
+      </div>
+    </div>
+  </div>
+  <div id="room">
+    <h2>방 목록</h2>
+    <!-- 내 이름 표시 text box-->
+    <input type="text" id="nick" placeholder="닉네임을 입력하세요">
+    <!-- 새 개임 버튼 -->
+    <button id="newGame">새 게임</button>
+    <!-- 방 목록 -->
+    <div id="roomList">
+    </div>
   </div>
 </body>
 </html>
