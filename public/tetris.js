@@ -4,9 +4,18 @@ var createStartButton = function() {
     let button = $('<button id="startButton" />')
                     .text('START')
                     .click(function() {
-                        if (window.Game == null) {
+                        print("START")
+                        print(window.Game)
+                        if (window.Game == undefined) {
                             CreateGame();
+                            ResetPlay();
+                            print("CreateGame")
                         }
+                        ResetPlay();
+                        StartPlay();
+
+                        // delete button
+                        $('#startButton').remove();
                     });
     $('#game').append(button);
 }
@@ -21,6 +30,7 @@ var CreateGame = function() {
     Game.DOWN = "Down";
     Game.EMPTY = 0;
     Game.FULL = 1;
+    Game.MIDDLE = 9; // (column-2)/2
     Game.drawGameMap=function()
     {
         var html ="";
@@ -37,10 +47,10 @@ var CreateGame = function() {
         $("#gameMap").html(html);
 
         html="";
-        for(var i=0;i<3;i++)
+        for(var i=0;i<4;i++)
         {
             html+="<tr>";
-            for(var j=0;j<3;j++)
+            for(var j=0;j<4;j++)
             {
                 html+="<td id='pr"+i+"pc"+j+"' class='cell'></td>";
             }
@@ -118,18 +128,18 @@ var CreateGame = function() {
     Game.Block=function()
     {
         this.currentRow = 0;
-        this.currentColumn = 8;//To start at the middle
+        this.currentColumn = Game.MIDDLE;//To start at the middle
 
         //block is a two dimensional mtatrix of 4*4
         this.blockCells =[];
 
         this.init=function()
         {
-            for(var row=0;row< 3;row++)
+            for(var row=0;row< 4;row++)
             {
                 var rowObject =[];
 
-                for(var column=0; column< 3;column++)
+                for(var column=0; column< 4;column++)
                 {
                     rowObject[column ] = 0 ;// 0 mean empty cell, 1 mean cell occupy a block
                 }
@@ -140,7 +150,7 @@ var CreateGame = function() {
         };
         this.createARadomBlock = function()
         {
-            var random = parseInt(Math.random() * 7);
+            var random = parseInt(Math.random() * 8);
             switch(Game.next)
             {
                 case 0:
@@ -161,8 +171,11 @@ var CreateGame = function() {
                 case 5:
                     this.blockCells = this.getShape6();
                 break;
-                default:
+                case 6:
                     this.blockCells = this.getShape7();
+                break;
+                default:
+                    this.blockCells = this.getShape8();
             }
             Game.next = random;
             this.showPreview();
@@ -190,12 +203,15 @@ var CreateGame = function() {
                 case 5:
                     blockCells = this.getShape6();
                 break;
-                default:
+                case 6:
                     blockCells = this.getShape7();
+                break;
+                default:
+                    blockCells = this.getShape8();
             }
-            for(var r = 0;r< 3; r++)
+            for(var r = 0;r< 4; r++)
             {
-                for(var c=0;c< 3; c++)
+                for(var c=0;c< 4; c++)
                 {
                     //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
                     //$("#pr"+y+"pc"+x).removeClass("block");
@@ -220,11 +236,10 @@ var CreateGame = function() {
         this.getShape1 = function()
         {
             var blockCells =[
-                                        [1,1,1],
-                                        [0,1,0],
-                                        [0,0,0],
-
-
+                                        [1,1,1,0],
+                                        [0,1,0,0],
+                                        [0,0,0,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 1");
             return blockCells;
@@ -232,11 +247,10 @@ var CreateGame = function() {
         this.getShape2 = function()
         {
             var blockCells =[
-                                        [1,1,1],
-                                        [0,0,0],
-                                        [0,0,0],
-
-
+                                        [1,1,1,1],
+                                        [0,0,0,0],
+                                        [0,0,0,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 2");
             return blockCells;
@@ -244,9 +258,10 @@ var CreateGame = function() {
         this.getShape3 = function()
         {
             var blockCells =[
-                                        [1,1,0],
-                                        [1,1,0],
-                                        [0,0,0],
+                                        [1,1,0,0],
+                                        [1,1,0,0],
+                                        [0,0,0,0],
+                                        [0,0,0,0],
                                     ];
 
             console.log("Shape 3");
@@ -255,11 +270,10 @@ var CreateGame = function() {
         this.getShape4 = function()
         {
             var blockCells =[
-                                        [1,0,0],
-                                        [1,1,0],
-                                        [0,1,0],
-
-
+                                        [1,0,0,0],
+                                        [1,1,0,0],
+                                        [0,1,0,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 4");
             return blockCells;
@@ -267,11 +281,10 @@ var CreateGame = function() {
         this.getShape5 = function()
         {
             var blockCells =[
-                                        [1,0,0],
-                                        [1,0,0],
-                                        [1,1,0],
-
-
+                                        [1,0,0,0],
+                                        [1,0,0,0],
+                                        [1,1,0,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 5");
             return blockCells;
@@ -279,11 +292,10 @@ var CreateGame = function() {
         this.getShape6 = function()
         {
             var blockCells =[
-                                        [0,0,1],
-                                        [0,0,1],
-                                        [0,1,1],
-
-
+                                        [0,0,1,0],
+                                        [0,0,1,0],
+                                        [0,1,1,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 6");
             return blockCells;
@@ -291,18 +303,28 @@ var CreateGame = function() {
         this.getShape7 = function()
         {
             var blockCells =[
-                                        [0,1,0],
-                                        [1,1,0],
-                                        [1,0,0],
-
-
+                                        [0,1,0,0],
+                                        [1,1,0,0],
+                                        [1,0,0,0],
+                                        [0,0,0,0],
                                     ];
             console.log("Shape 7");
             return blockCells;
         };
+        this.getShape8 = function()
+        {
+            var blockCells =[
+                                        [1,0,0,0],
+                                        [1,0,0,0],
+                                        [1,0,0,0],
+                                        [1,0,0,0],
+                                    ];
+            console.log("Shape 8");
+            return blockCells;
+        };
         this.isOrigin = function()
         {
-                if(this.currentRow == 0 && this.currentColumn ==8)
+                if(this.currentRow == 0 /*&& this.currentColumn == Game.MIDDLE*/)
                 {
                     return true;
                 }
@@ -318,9 +340,9 @@ var CreateGame = function() {
         this.drawBlock = function()
         {
             //current x ,current y is the first corner of block cell[0,0]
-            for(var r = 0;r< 3; r++)
+            for(var r = 0;r< 4; r++)
             {
-                for(var c=0;c< 3; c++)
+                for(var c=0;c< 4; c++)
                 {
                     //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
                     if(this.blockCells[r][c]==1)
@@ -336,19 +358,19 @@ var CreateGame = function() {
         this.isSafeToRotate = function()
         {
             var newBlock = [];
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
                 newBlock[r] = [];
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
                     newBlock[r][c] = 0;
                 }
             }
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
-                    newBlock[c][r] = this.blockCells[r][2-c];
+                    newBlock[c][r] = this.blockCells[r][3-c];
                 }
             }
             // Temporarily rotate the block
@@ -356,9 +378,9 @@ var CreateGame = function() {
 
             //Game.gameBoard.cells[]
             var ok = true;
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
                     if( newBlock[r][c] == Game.FULL)
                     {
@@ -387,19 +409,19 @@ var CreateGame = function() {
                 change row to columns
             */
             var newBlock = [];
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
                 newBlock[r] = [];
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
                     newBlock[r][c] = 0;
                 }
             }
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
-                    newBlock[c][r] = this.blockCells[r][2-c];
+                    newBlock[c][r] = this.blockCells[r][3-c];
                 }
             }
 
@@ -410,9 +432,9 @@ var CreateGame = function() {
         this.clearOldDrawing = function()
         {
                 //current x ,current y is the first corner of block cell[0,0]
-            for(var r = 0;r< 3; r++)
+            for(var r = 0;r< 4; r++)
             {
-                for(var c=0;c< 3; c++)
+                for(var c=0;c< 4; c++)
                 {
                     //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
                     if(this.blockCells[r][c]==1)
@@ -430,9 +452,9 @@ var CreateGame = function() {
 
             var ok = true;
 
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
 
                     // Then game board must be empty
@@ -472,18 +494,11 @@ var CreateGame = function() {
                 Game.current.init();
             }
         };
-        this.moveBottom = function()
-        {
-            while(this.isSafeToMoveDown())
-            {
-                this.moveDown();
-            }
-        }
         this.storeGameBoardData = function()
         {
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
                 {
-                    for(var c =0; c< 3;c++)
+                    for(var c =0; c< 4;c++)
                     {
 
                         var y = this.currentRow + r  ;
@@ -565,9 +580,9 @@ var CreateGame = function() {
         {
 
             var ok = true;
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
 
                     // Then game board must be empty
@@ -603,9 +618,9 @@ var CreateGame = function() {
         {
 
             var ok = true;
-            for(var r = 0; r < 3 ;r++)
+            for(var r = 0; r < 4 ;r++)
             {
-                for(var c =0; c< 3;c++)
+                for(var c =0; c< 4;c++)
                 {
 
                     // Then game board must be empty
@@ -637,40 +652,37 @@ var CreateGame = function() {
             }
         };
     };
-    Game.drawGameMap();
-    Game.current  = new Game.Block ();
-    Game.current.init();
-    Game.score = 0;
+
     Game.displayScore = function()
     {
         $("#gameScore").text(Game.score);
     };
-    window.timer = window.setInterval(function()
-    {
-        if(Game.current.isSafeToMoveDown())
-        {
-            Game.current.moveDown();
-        }
-        else if (! Game.current.isOrigin())
-        {
-                Game.current.storeGameBoardData();
-                Game.current.processGameRow();
-                Game.current  = new Game.Block ();
-                Game.current.init();
-        }
-        else
-        {
-            alert("Game over, please refresh the page to start new game");
-            clearInterval(timer);
-        }
-    },1000);
+
     $(document).keydown(function(e)
     {
         try
         {
             if(e.keyCode == 32) //space
             {
-                Game.current.moveBottom()
+                // to bottom
+                while(Game.current.isSafeToMoveDown())
+                {
+                    Game.current.moveDown();
+                }
+
+                if (! Game.current.isOrigin())
+                {
+                    Game.current.storeGameBoardData();
+                    Game.current.processGameRow();
+                    Game.current  = new Game.Block ();
+                    Game.current.init();
+                }
+                else
+                {
+                    alert("Game over, please refresh the page to start new game");
+                    clearInterval(timer);
+                }
+
             }
             if (e.keyCode == 38) //up
             {
@@ -692,15 +704,16 @@ var CreateGame = function() {
                 }
                 else if (! Game.current.isOrigin())
                 {
-                        Game.current.storeGameBoardData();
-                        Game.current.processGameRow();
-                        Game.current  = new Game.Block ();
-                        Game.current.init();
+                    Game.current.storeGameBoardData();
+                    Game.current.processGameRow();
+                    Game.current  = new Game.Block ();
+                    Game.current.init();
                 }
                 else
                 {
                     alert("Game over, please refresh the page to start new game");
                     clearInterval(timer);
+                    createStartButton();
                 }
 
             }
@@ -708,8 +721,41 @@ var CreateGame = function() {
         catch(e)
         {
             alert("Game is over,Please refresh to start new game ");
-
+            print(e);
+            createStartButton();
         }
     });
+}
 
+var ResetPlay = function() {
+    clearInterval(window.timer);
+
+    Game.drawGameMap();
+    Game.current  = new Game.Block ();
+    Game.current.init();
+    Game.score = 0;
+}
+
+var StartPlay = function() {
+
+    window.timer = window.setInterval(function()
+    {
+        if(Game.current.isSafeToMoveDown())
+        {
+            Game.current.moveDown();
+        }
+        else if (! Game.current.isOrigin())
+        {
+                Game.current.storeGameBoardData();
+                Game.current.processGameRow();
+                Game.current  = new Game.Block ();
+                Game.current.init();
+        }
+        else
+        {
+            alert("Game over, please refresh the page to start new game");
+            clearInterval(timer);
+            createStartButton();
+        }
+    },1000);
 }

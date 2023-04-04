@@ -90,6 +90,8 @@ func (wss *WebsocketServer) HandleMessage(message *Message) {
 
 	case "list-room":
 
+		Info.Println("list-room:", message)
+
 		message.RoomList = make([]RoomInfo, 0)
 
 		for roomId, members := range wss.rooms {
@@ -108,7 +110,9 @@ func (wss *WebsocketServer) HandleMessage(message *Message) {
 		}
 
 		// 요청한 사용자에게 보내기
-		wss.rooms[WAITITNG_ROOM][message.Sender].send <- message
+		if _, ok := wss.rooms[WAITITNG_ROOM][message.Sender]; ok {
+			wss.rooms[WAITITNG_ROOM][message.Sender].send <- message
+		}
 
 	default:
 		Warning.Println("Unknown Action:", message)
