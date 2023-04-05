@@ -9,7 +9,6 @@ var createStartButton = function() {
                         if (window.Game == undefined) {
                             CreateGame();
                             ResetPlay();
-                            print("CreateGame")
                         }
                         ResetPlay();
                         StartPlay();
@@ -488,10 +487,7 @@ var CreateGame = function() {
             }
             else  // Set the game board cell
             {
-                this.storeGameBoardData();
-                this.processGameRow();
-                Game.current  = new Game.Block ();
-                Game.current.init();
+                Game.nextTern();
             }
         };
         this.storeGameBoardData = function()
@@ -658,6 +654,21 @@ var CreateGame = function() {
         $("#gameScore").text(Game.score);
     };
 
+    Game.gameOver = function()
+    {
+        alert("Game over, please refresh the page to start new game");
+        clearInterval(timer);
+        createStartButton();
+    }
+
+    Game.nextTern = function()
+    {
+        Game.current.storeGameBoardData();
+        Game.current.processGameRow();
+        Game.current  = new Game.Block ();
+        Game.current.init();
+    }
+
     $(document).keydown(function(e)
     {
         try
@@ -672,15 +683,11 @@ var CreateGame = function() {
 
                 if (! Game.current.isOrigin())
                 {
-                    Game.current.storeGameBoardData();
-                    Game.current.processGameRow();
-                    Game.current  = new Game.Block ();
-                    Game.current.init();
+                    Game.nextTern();
                 }
                 else
                 {
-                    alert("Game over, please refresh the page to start new game");
-                    clearInterval(timer);
+                    Game.gameOver();
                 }
 
             }
@@ -704,25 +711,19 @@ var CreateGame = function() {
                 }
                 else if (! Game.current.isOrigin())
                 {
-                    Game.current.storeGameBoardData();
-                    Game.current.processGameRow();
-                    Game.current  = new Game.Block ();
-                    Game.current.init();
+                    Game.nextTern();
                 }
                 else
                 {
-                    alert("Game over, please refresh the page to start new game");
-                    clearInterval(timer);
-                    createStartButton();
+                    Game.gameOver();
                 }
 
             }
         }
         catch(e)
         {
-            alert("Game is over,Please refresh to start new game ");
             print(e);
-            createStartButton();
+            Game.gameOver();
         }
     });
 }
@@ -746,16 +747,11 @@ var StartPlay = function() {
         }
         else if (! Game.current.isOrigin())
         {
-                Game.current.storeGameBoardData();
-                Game.current.processGameRow();
-                Game.current  = new Game.Block ();
-                Game.current.init();
+            Game.nextTern();
         }
         else
         {
-            alert("Game over, please refresh the page to start new game");
-            clearInterval(timer);
-            createStartButton();
+            Game.gameOver();
         }
     },1000);
 }
