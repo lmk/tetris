@@ -1,6 +1,5 @@
 // 게임 화면 안에 시작 버튼 생성
-var createStartButton = function() {
-
+function createStartButton() {
     let button = $('<button id="startButton" />')
                     .text('START')
                     .click(function() {
@@ -8,7 +7,6 @@ var createStartButton = function() {
                         print(window.Game)
                         if (window.Game == undefined) {
                             CreateGame();
-                            ResetPlay();
                         }
                         ResetPlay();
                         StartPlay();
@@ -19,655 +17,480 @@ var createStartButton = function() {
     $('#game').append(button);
 }
 
-var CreateGame = function() {
-    window.Game = window.Game || {};
-    Game.row= 20;
-    Game.column = 20;
-    Game.LEFT = "Left";
-    Game.RIGHT = "Right";
-    Game.UP = "Up";
-    Game.DOWN = "Down";
-    Game.EMPTY = 0;
-    Game.FULL = 1;
-    Game.MIDDLE = 9; // (column-2)/2
-    Game.drawGameMap=function()
+class Game {
+
+    row= 20;
+    column = 20;
+    MIDDLE = 9;     // (column-2)/2
+    EMPTY = 0;
+    FULL = 1;
+
+    gameBoard = new Board();
+
+    constructor() {
+        this.drawGameMap();
+    }
+
+    drawGameMap ()
     {
-        var html ="";
-        for(var i=0;i<Game.row;i++)
+        let html ="";
+        for(let i=0;i<Game.row;i++)
         {
             html+="<tr>";
-            for(var j=0;j<Game.column;j++)
+            for(let j=0;j<Game.column;j++)
             {
                 html+="<td id='r"+i+"c"+j+"' class='cell'></td>";
             }
-
             html+="</tr>";
         }
-        $("#gameMap").html(html);
+        $("#board").html(html);
 
         html="";
-        for(var i=0;i<4;i++)
+        for(let i=0;i<4;i++)
         {
             html+="<tr>";
-            for(var j=0;j<4;j++)
+            for(let j=0;j<4;j++)
             {
                 html+="<td id='pr"+i+"pc"+j+"' class='cell'></td>";
             }
-
             html+="</tr>";
         }
-        $("#gamePreviewMap").html(html);
+        $("#nextBlock").html(html);
     }
-    Game.next =0;//Store preview block
-    Game.Board = function()
-    {
-        this.cells =[];
-        for(var row=0;row< Game.row;row++)
-        {
-            var rowObject =[];
 
-            for(var column=0; column< Game.column;column++)
-            {
-                rowObject[column ] = Game.EMPTY ;// 0 mean empty cell, 1 mean cell occupy a block
-            }
-            this.cells[row] = rowObject;
-        }
-        this.clearGameBoard = function()
+    drawNextBlock() {
+        for(let r=0; r<4; r++)
         {
-            for(var row=0;row< Game.row;row++)
+            for(let c=0; c<4; c++)
+            {
+                if(this.nextBlock[r][c] == Game.FULL)
                 {
-
-                    for(var column=0; column< Game.column;column++)
-                    {
-                        $("#r"+row+"c"+column).removeClass("cell");
-                        $("#r"+row+"c"+column).removeClass("block");
-                        $("#r"+row+"c"+column).removeClass("animate");
-                    }
-
-                }
-
-        };
-        this.animateRow = function(row)
-        {
-            for(var column=0; column< Game.column;column++)
-            {
-                $("#r"+row+"c"+column).addClass("animate");
-
-            }
-
-        };
-        this.drawGameBoard = function ()
-        {
-                this.clearGameBoard();
-                ///alert("After clear");
-                console.log("Redrawing gameboard");
-                for(var row=0;row< Game.row;row++)
-                {
-
-                    for(var column=0; column< Game.column;column++)
-                    {
-
-                        var className;
-                        if(this.cells[row][column] == Game.EMPTY)
-                        {
-                            className = "cell";
-                        }
-                        else
-                        {
-                            className = "block";
-                        }
-                        $("#r"+row+"c"+column).addClass(className);
-                    }
-
-                }
-        };
-
-    };
-    Game.gameBoard  = new Game.Board();
-    Game.Block=function()
-    {
-        this.currentRow = 0;
-        this.currentColumn = Game.MIDDLE;//To start at the middle
-
-        //block is a two dimensional mtatrix of 4*4
-        this.blockCells =[];
-
-        this.init=function()
-        {
-            for(var row=0;row< 4;row++)
-            {
-                var rowObject =[];
-
-                for(var column=0; column< 4;column++)
-                {
-                    rowObject[column ] = 0 ;// 0 mean empty cell, 1 mean cell occupy a block
-                }
-                this.blockCells[row] = rowObject;
-            }
-            this.createARadomBlock();
-            this.drawBlock();
-        };
-        this.createARadomBlock = function()
-        {
-            var random = parseInt(Math.random() * 8);
-            switch(Game.next)
-            {
-                case 0:
-                    this.blockCells = this.getShape1();
-                break;
-                case 1:
-                    this.blockCells = this.getShape2();
-                break;
-                case 2:
-                    this.blockCells = this.getShape3();
-                break;
-                case 3:
-                    this.blockCells = this.getShape4();
-                break;
-                case 4:
-                    this.blockCells = this.getShape5();
-                break;
-                case 5:
-                    this.blockCells = this.getShape6();
-                break;
-                case 6:
-                    this.blockCells = this.getShape7();
-                break;
-                default:
-                    this.blockCells = this.getShape8();
-            }
-            Game.next = random;
-            this.showPreview();
-        };
-        this.showPreview = function()
-        {
-            var blockCells;
-            switch(Game.next)
-            {
-                case 0:
-                    blockCells = this.getShape1();
-                break;
-                case 1:
-                    blockCells = this.getShape2();
-                break;
-                case 2:
-                    blockCells = this.getShape3();
-                break;
-                case 3:
-                    blockCells = this.getShape4();
-                break;
-                case 4:
-                    blockCells = this.getShape5();
-                break;
-                case 5:
-                    blockCells = this.getShape6();
-                break;
-                case 6:
-                    blockCells = this.getShape7();
-                break;
-                default:
-                    blockCells = this.getShape8();
-            }
-            for(var r = 0;r< 4; r++)
-            {
-                for(var c=0;c< 4; c++)
-                {
-                    //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
-                    //$("#pr"+y+"pc"+x).removeClass("block");
-                    if(blockCells[r][c]==1)
-                    {
-                        var y =  r;
-                        var x =  c;
-                        $("#pr"+y+"pc"+x).addClass("block");
-                        console.log("#pr"+y+"pc"+x);
-                    }
-                    else
-                    {
-                        var y =  r;
-                        var x =  c;
-                        $("#pr"+y+"pc"+x).removeClass("block");
-                    }
-
-                }
-            }
-            console.log("Show preview");
-        };
-        this.getShape1 = function()
-        {
-            var blockCells =[
-                                        [1,1,1,0],
-                                        [0,1,0,0],
-                                        [0,0,0,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 1");
-            return blockCells;
-        };
-        this.getShape2 = function()
-        {
-            var blockCells =[
-                                        [1,1,1,1],
-                                        [0,0,0,0],
-                                        [0,0,0,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 2");
-            return blockCells;
-        };
-        this.getShape3 = function()
-        {
-            var blockCells =[
-                                        [1,1,0,0],
-                                        [1,1,0,0],
-                                        [0,0,0,0],
-                                        [0,0,0,0],
-                                    ];
-
-            console.log("Shape 3");
-            return blockCells;
-        };
-        this.getShape4 = function()
-        {
-            var blockCells =[
-                                        [1,0,0,0],
-                                        [1,1,0,0],
-                                        [0,1,0,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 4");
-            return blockCells;
-        };
-        this.getShape5 = function()
-        {
-            var blockCells =[
-                                        [1,0,0,0],
-                                        [1,0,0,0],
-                                        [1,1,0,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 5");
-            return blockCells;
-        };
-        this.getShape6 = function()
-        {
-            var blockCells =[
-                                        [0,0,1,0],
-                                        [0,0,1,0],
-                                        [0,1,1,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 6");
-            return blockCells;
-        };
-        this.getShape7 = function()
-        {
-            var blockCells =[
-                                        [0,1,0,0],
-                                        [1,1,0,0],
-                                        [1,0,0,0],
-                                        [0,0,0,0],
-                                    ];
-            console.log("Shape 7");
-            return blockCells;
-        };
-        this.getShape8 = function()
-        {
-            var blockCells =[
-                                        [1,0,0,0],
-                                        [1,0,0,0],
-                                        [1,0,0,0],
-                                        [1,0,0,0],
-                                    ];
-            console.log("Shape 8");
-            return blockCells;
-        };
-        this.isOrigin = function()
-        {
-                if(this.currentRow == 0 /*&& this.currentColumn == Game.MIDDLE*/)
-                {
-                    return true;
+                    $("#pr"+r+"pc"+c).addClass("block");
                 }
                 else
                 {
-                    return false;
-                }
-
-        };
-        /*
-        * This method draw the block in the game board
-        */
-        this.drawBlock = function()
-        {
-            //current x ,current y is the first corner of block cell[0,0]
-            for(var r = 0;r< 4; r++)
-            {
-                for(var c=0;c< 4; c++)
-                {
-                    //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
-                    if(this.blockCells[r][c]==1)
-                    {
-                        var y = this.currentRow + r;
-                        var x = this.currentColumn + c;
-                        $("#r"+y+"c"+x).addClass("block");
-                    }
-
+                    $("#pr"+r+"pc"+c).removeClass("block");
                 }
             }
-        };
-        this.isSafeToRotate = function()
-        {
-            var newBlock = [];
-            for(var r = 0; r < 4 ;r++)
-            {
-                newBlock[r] = [];
-                for(var c =0; c< 4;c++)
-                {
-                    newBlock[r][c] = 0;
-                }
-            }
-            for(var r = 0; r < 4;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-                    newBlock[c][r] = this.blockCells[r][3-c];
-                }
-            }
-            // Temporarily rotate the block
-            // used game board to check if it is ok to rotate;
+        }
+    }
 
-            //Game.gameBoard.cells[]
-            var ok = true;
-            for(var r = 0; r < 4;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-                    if( newBlock[r][c] == Game.FULL)
-                    {
-                        // Then game board must be empty
-                        var y = this.currentRow + r;
-                        var x = this.currentColumn + c;
+    Start() {
+        this.gameBoard.Start();
+    }
 
-                        if (Game.gameBoard.cells[ y ] [ x] != Game.EMPTY )
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return ok;
-        };
-        this.rotate = function()
-        {
-            if(!this.isSafeToRotate())
-            {
-                return;
-            }
-            this.clearOldDrawing();
-            /*
-                Mathmatically rotate
-                change row to columns
-            */
-            var newBlock = [];
-            for(var r = 0; r < 4 ;r++)
-            {
-                newBlock[r] = [];
-                for(var c =0; c< 4;c++)
-                {
-                    newBlock[r][c] = 0;
-                }
-            }
-            for(var r = 0; r < 4 ;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-                    newBlock[c][r] = this.blockCells[r][3-c];
-                }
-            }
-
-            this.blockCells = newBlock;
-
-            this.drawBlock();
-        };
-        this.clearOldDrawing = function()
-        {
-                //current x ,current y is the first corner of block cell[0,0]
-            for(var r = 0;r< 4; r++)
-            {
-                for(var c=0;c< 4; c++)
-                {
-                    //console.log("r "+r+" c "+c + " "+ this.blockCells[r][c]);
-                    if(this.blockCells[r][c]==1)
-                    {
-                        var y = this.currentRow + r;
-                        var x = this.currentColumn + c;
-                        $("#r"+y+"c"+x).removeClass("block");
-                    }
-
-                }
-            }
-        };
-        this.isSafeToMoveDown = function()
-        {
-
-            var ok = true;
-
-            for(var r = 0; r < 4 ;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-
-                    // Then game board must be empty
-
-                    if( this.blockCells[r][c] == Game.FULL)
-                    {
-                        var y = this.currentRow + r +1 ;
-                        var x = this.currentColumn + c;
-                        if(y >= Game.row  )//last row, reach the end stop and return false ,cannot move further down
-                        {
-                            return false;
-                        }
-                        if (Game.gameBoard.cells[ y ] [ x] != Game.EMPTY )
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return ok;
-        };
-        this.moveDown = function()
-        {
-            if (this.isSafeToMoveDown())
-            {
-                //Move down
-
-                this.clearOldDrawing();
-                this.currentRow ++;
-                this.drawBlock();
-            }
-            else  // Set the game board cell
-            {
-                Game.nextTern();
-            }
-        };
-        this.storeGameBoardData = function()
-        {
-            for(var r = 0; r < 4 ;r++)
-                {
-                    for(var c =0; c< 4;c++)
-                    {
-
-                        var y = this.currentRow + r  ;
-                        var x = this.currentColumn + c;
-                        if( this.blockCells[r][c] == Game.FULL)
-                        {
-                            Game.gameBoard.cells[ y ] [ x] = Game.FULL;
-                            console.log("Set row "+y +" column "+x +" to 1");
-                        }
-                    }
-                }
-        };
-        this.processGameRow = function()
-        {
-            //start from the last row
-            var rowIndexToRemove= [];
-            for(var last = Game.row-1 ; last >=0; last--)
-            {
-                var ok  = true;
-                for(var col =0 ;col < Game.column ;col++)
-                {
-                    ok = ok && Game.gameBoard.cells[last][col] == Game.FULL;
-
-                }
-
-                if (ok) // This row is full
-                {
-                    console.log("Checking row "+last+" full "+ok);
-                    rowIndexToRemove.unshift(last);
-                }
-            }
-            // For each remove row shit the row from top
-            for(var lastIndex = 0 ; lastIndex < rowIndexToRemove.length;  lastIndex ++)
-            {
-                var rowIndex = rowIndexToRemove[ lastIndex ];
-                var animateRow = rowIndex;
-                //shift the one row down
-                console.log("Shifting down row "+rowIndex);
-                for(var c =0; c < Game.column; c++)
-                {
-                    console.log("remove row "+rowIndex +" column "+c +" with row "+(rowIndex-1)+" column "+c);
-                    Game.gameBoard.cells[rowIndex][c] = Game.gameBoard.cells[rowIndex-1][c];
-
-                }
-
-                console.log("Congrulation");
-                rowIndex --;
-                while(rowIndex > 0 )
-                {
-                    for(var c =0; c < Game.column; c++)
-                    {
-                        Game.gameBoard.cells[rowIndex][c] = Game.gameBoard.cells[rowIndex-1][c];
-
-                    }
-                    rowIndex --;
-                }
-                for(var col =0; col < Game.column; col++)
-                {
-                    //Add the empty row at top
-                    Game.gameBoard.cells[0][col] = Game.EMPTY;
-                }
-                Game.gameBoard.animateRow(animateRow);
-                setTimeout(function()
-                {
-                    Game.gameBoard.drawGameBoard();
-                },100);
-                Game.score += 1000;
-            }
-            //Add bonus if more than one row
-            if(rowIndexToRemove.length >1)
-            {
-                Game.score += (rowIndexToRemove.length -1)*500;
-            }
-
-            Game.displayScore();
-        };
-
-        this.isSafeToMoveLeft = function()
-        {
-
-            var ok = true;
-            for(var r = 0; r < 4 ;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-
-                    // Then game board must be empty
-                    var y = this.currentRow + r  ;
-                    var x = this.currentColumn + c -1;
-                    if( this.blockCells[r][c] == Game.FULL)
-                    {
-                        if(x < 0)
-                        {
-                                return false;
-                        }
-                        if (Game.gameBoard.cells[ y ] [ x] != Game.EMPTY )
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return ok;
-        };
-        this.moveLeft = function()
-        {
-            if(this.isSafeToMoveLeft())
-            {
-                this.clearOldDrawing();
-                this.currentColumn --;
-                this.drawBlock();
-
-            }
-        };
-
-        this.isSafeToMoveRight = function()
-        {
-
-            var ok = true;
-            for(var r = 0; r < 4 ;r++)
-            {
-                for(var c =0; c< 4;c++)
-                {
-
-                    // Then game board must be empty
-                    var y = this.currentRow + r  ;
-                    var x = this.currentColumn + c +1;
-                    if( this.blockCells[r][c] == Game.FULL)
-                    {
-                        if(this.x + 2 >= Game.column)
-                        {
-                            return false;
-                        }
-                        if (Game.gameBoard.cells[ y ] [ x] != Game.EMPTY )
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return ok;
-        };
-        this.moveRight = function()
-        {
-            if(this.isSafeToMoveRight())
-            {
-                this.clearOldDrawing();
-                this.currentColumn ++;
-                this.drawBlock();
-
-            }
-        };
-    };
-
-    Game.displayScore = function()
-    {
-        $("#gameScore").text(Game.score);
-    };
-
-    Game.gameOver = function()
+    GameOver()
     {
         alert("Game over, please refresh the page to start new game");
         clearInterval(timer);
         createStartButton();
     }
+}
 
-    Game.nextTern = function()
-    {
-        Game.current.storeGameBoardData();
-        Game.current.processGameRow();
-        Game.current  = new Game.Block ();
-        Game.current.init();
+class Board {
+
+    cells = []; // the game board (Game.row x Game.column)
+    score = 0;
+
+    nextBlock = undefined;
+    currentBlock = undefined;
+
+    currentRow = 0;
+    currentColumn = Game.MIDDLE; //To start at the middle
+
+    constructor() {
+        this.init();
     }
+
+    init() {
+        for(let row=0;row< Game.row;row++)
+        {
+            let rowObject =[];
+
+            for(let column=0; column< Game.column;column++)
+            {
+                rowObject[column] = Game.EMPTY ;// 0 mean empty cell, 1 mean cell occupy a block
+            }
+            this.cells[row] = rowObject;
+        }
+    }
+
+    clearGameBoard() {
+        for(let row=0;row< Game.row;row++)
+        {
+            for(let column=0; column< Game.column;column++)
+            {
+                $("#r"+row+"c"+column).removeClass("cell");
+                $("#r"+row+"c"+column).removeClass("block");
+                $("#r"+row+"c"+column).removeClass("animate");
+            }
+        }
+    }
+
+    animateRow(row) {
+        for(let column=0; column< Game.column;column++)
+        {
+            $("#r"+row+"c"+column).addClass("animate");
+        }
+    }
+
+    DrawGameBoard() {
+        for(let row=0;row< Game.row;row++)
+        {
+            for(let column=0; column< Game.column;column++)
+            {
+                let className;
+                if(this.cells[row][column] == Game.EMPTY)
+                {
+                    className = "cell";
+                }
+                else
+                {
+                    className = "block";
+                }
+                $("#r"+row+"c"+column).removeClass("cell");
+                $("#r"+row+"c"+column).removeClass("block");
+                $("#r"+row+"c"+column).removeClass("animate");
+                $("#r"+row+"c"+column).addClass(className);
+            }
+        }
+    }
+
+    isSafeToRotateBlock() {
+        let rotateBlock = this.currentBlock;
+        rotateBlock.RotateCell();
+
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(rotateBlock[r][c] == Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c;
+                    if(y<0 || y>=Game.row || x<0 || x>=Game.column)
+                    {
+                        return false;
+                    }
+                    if(this.cells[y][x] == Game.FULL)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    isSafeToMoveDownBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.currentBlock[r][c] == Game.FULL)
+                {
+                    let y = this.currentRow + r +1;
+                    let x = this.currentColumn + c;
+                    if(y<0 || y>=Game.row || x<0 || x>=Game.column)
+                    {
+                        return false;
+                    }
+                    if(this.cells[y][x] == Game.FULL)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    isSafeToMoveLeftBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.currentBlock[r][c] == Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c -1;
+                    if(y<0 || y>=Game.row || x<0 || x>=Game.column)
+                    {
+                        return false;
+                    }
+                    if(this.cells[y][x] == Game.FULL)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    isSafeToMoveRightBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.currentBlock[r][c] == Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c +1;
+                    if(y<0 || y>=Game.row || x<0 || x>=Game.column)
+                    {
+                        return false;
+                    }
+                    if(this.cells[y][x] == Game.FULL)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+
+    RotateBlock() {
+        if(! this.isSafeToRotateBlock())
+        {
+            return;
+        }
+
+        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.currentBlock.RotateCell();
+        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+    }
+
+    MoveDownBlock() {
+        if(! this.isSafeToMoveDownBlock())
+        {
+            return false;
+        } else {
+            this.currentBlock.Erase(this.currentRow, this.currentColumn);
+            this.currentRow ++;
+            this.currentBlock.Draw(this.currentRow, this.currentColumn);
+
+            this.NextTern();
+        }
+        return true;
+    }
+
+    MoveLeftBlock() {
+        if(! this.isSafeToMoveLeftBlock())
+        {
+            return;
+        }
+
+        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.currentColumn --;
+        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+    }
+
+    MoveRightBlock() {
+        if(! this.isSafeToMoveRightBlock())
+        {
+            return;
+        }
+
+        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.currentColumn ++;
+        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+    }
+
+    MoveBottomBlock() {
+        while(this.isSafeToMoveDownBlock())
+        {
+            if (this.MoveDownBlock() == false)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    saveCurrentBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c =0; c<4; c++)
+            {
+                if( this.currentBlock[r][c] == Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c;
+
+                    this.cells[y][x] = Game.FULL;
+                }
+            }
+        }
+    }
+
+    addScore(score) {
+        this.score += score;
+        $("#score").text(this.score);
+    }
+
+    processFullRow() {
+
+        for(let row=Game.row-1; row>=0; row--)
+        {
+            let isFull = true;
+            let countFull = 0;
+            for(let column=0; column< Game.column; column++)
+            {
+                if(this.cells[row][column] == Game.EMPTY)
+                {
+                    isFull = false;
+                    break;
+                }
+            }
+
+            if(isFull)
+            {
+                for(let r=row; r>0; r--)
+                {
+                    for(let c=0; c< Game.column; c++)
+                    {
+                        this.cells[r][c] = this.cells[r-1][c];
+                    }
+                }
+                this.animateRow(row);
+                countFull++;
+                row++;
+
+                addScore(10 * (countFull*countFull));
+            }
+        }
+    }
+
+    createNextBlock() {
+        this.nextBlock = new Block();
+        this.nextBlock.set(Math.floor(Math.random()*8));
+    }
+
+    NextTern() {
+        this.saveCurrentBlock();
+        this.processFullRow();
+        this.currentBlock = this.nextBlock;
+        this.createNextBlock();
+    }
+
+    Start() {
+        this.createNextBlock();
+        this.currentBlock = this.nextBlock;
+        this.createNextBlock();
+    }
+
+}
+
+class Block {
+
+    //block is a two dimensional mtatrix of 4*4
+    blockCells =[];
+
+    set(index) {
+        this.blockCells = this.Shape[index];
+        this.Draw();
+    }
+
+    Shape = [
+        [
+            [0,0,0,0],
+            [1,1,1,0],
+            [0,1,0,0],
+            [0,0,0,0],
+        ], [
+            [0,0,0,0],
+            [1,1,1,1],
+            [0,0,0,0],
+            [0,0,0,0],
+        ], [
+            [0,0,0,0],
+            [0,1,1,0],
+            [0,1,1,0],
+            [0,0,0,0],
+        ], [
+            [0,1,0,0],
+            [0,1,1,0],
+            [0,0,1,0],
+            [0,0,0,0]
+        ], [
+            [0,1,0,0],
+            [0,1,0,0],
+            [0,1,1,0],
+            [0,0,0,0]
+        ], [
+            [0,0,0,0],
+            [0,1,1,0],
+            [1,1,0,0],
+            [0,0,0,0]
+        ], [
+            [0,0,0,0],
+            [1,1,0,0],
+            [0,1,1,0],
+            [0,0,0,0]
+        ]
+    ];
+
+    Draw(currentRow, currentColumn) {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.blockCells[r][c] == Game.EMPTY)
+                {
+                    let y = currentRow + r;
+                    let x = currentColumn + c;
+                    $("#r"+y+"c"+x).addClass("block");
+                }
+            }
+        }
+    }
+
+    Erase(currentRow, currentColumn) {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.blockCells[r][c] == Game.FULL)
+                {
+                    let y = currentRow + r;
+                    let x = currentColumn + c;
+                    $("#r"+y+"c"+x).removeClass("block");
+                }
+            }
+        }
+    }
+
+    NewEmptyCell() {
+        let cell = [];
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                cell[r][c] = Game.EMPTY;
+            }
+        }
+        return cell;
+    }
+
+    RotateCell() {
+        let rotateCell = this.NewEmptyCell();
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                rotateCell[c][r] = blockCells[r][3-c];
+            }
+        }
+    }
+}
+
+function CreateGame() {
+
+    window.Game = new Game();
 
     $(document).keydown(function(e)
     {
@@ -675,83 +498,48 @@ var CreateGame = function() {
         {
             if(e.keyCode == 32) //space
             {
-                // to bottom
-                while(Game.current.isSafeToMoveDown())
-                {
-                    Game.current.moveDown();
+                if (Game.gameBoard.MoveBottomBlock() == false) {
+                    Game.GameOver();
                 }
-
-                if (! Game.current.isOrigin())
-                {
-                    Game.nextTern();
-                }
-                else
-                {
-                    Game.gameOver();
-                }
-
             }
             if (e.keyCode == 38) //up
             {
-                Game.current.rotate();
+                Game.gameBoard.RotateBlock();
             }
             if (e.keyCode == 37) //left
             {
-                Game.current.moveLeft();
+                Game.gameBoard.MoveLeftBlock();
             }
             if(e.keyCode == 39) //Right
             {
-                Game.current.moveRight();
+                Game.gameBoard.MoveRightBlock();
             }
             if(e.keyCode == 40) //Down
             {
-                if(Game.current.isSafeToMoveDown())
-                {
-                    Game.current.moveDown();
+                if (Game.gameBoard.MoveDownBlock() == false) {
+                    Game.GameOver();
                 }
-                else if (! Game.current.isOrigin())
-                {
-                    Game.nextTern();
-                }
-                else
-                {
-                    Game.gameOver();
-                }
-
             }
         }
         catch(e)
         {
             print(e);
-            Game.gameOver();
+            Game.GameOver();
         }
     });
 }
 
-var ResetPlay = function() {
-    clearInterval(window.timer);
 
-    Game.drawGameMap();
-    Game.current  = new Game.Block ();
-    Game.current.init();
-    Game.score = 0;
+
+function ResetPlay() {
+    clearInterval(window.timer);
 }
 
-var StartPlay = function() {
-
+function StartPlay() {
     window.timer = window.setInterval(function()
     {
-        if(Game.current.isSafeToMoveDown())
-        {
-            Game.current.moveDown();
-        }
-        else if (! Game.current.isOrigin())
-        {
-            Game.nextTern();
-        }
-        else
-        {
-            Game.gameOver();
+        if (Game.gameBoard.MoveDownBlock() == false) {
+            Game.GameOver();
         }
     },1000);
 }
