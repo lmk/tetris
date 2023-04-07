@@ -239,9 +239,9 @@ class Board {
             return;
         }
 
-        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.removeCurrentBlock();
         this.currentBlock.RotateCell();
-        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+        this.saveCurrentBlock();
     }
 
     MoveDownBlock() {
@@ -249,10 +249,9 @@ class Board {
         {
             return false;
         } else {
-            this.saveCurrentBlock();
-            this.currentBlock.Erase(this.currentRow, this.currentColumn);
+            this.removeCurrentBlock();
             this.currentRow ++;
-            this.currentBlock.Draw(this.currentRow, this.currentColumn);
+            this.saveCurrentBlock();
         }
         return true;
     }
@@ -263,9 +262,9 @@ class Board {
             return;
         }
 
-        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.removeCurrentBlock();
         this.currentColumn --;
-        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+        this.saveCurrentBlock();
     }
 
     MoveRightBlock() {
@@ -274,9 +273,9 @@ class Board {
             return;
         }
 
-        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        this.removeCurrentBlock();
         this.currentColumn ++;
-        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+        this.saveCurrentBlock();
     }
 
     MoveBottomBlock() {
@@ -305,6 +304,26 @@ class Board {
                 }
             }
         }
+
+        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+    }
+
+    removeCurrentBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c =0; c<4; c++)
+            {
+                if( this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c;
+
+                    this.cells[y][x] = window.Game.EMPTY;
+                }
+            }
+        }
+
+        this.currentBlock.Erase(this.currentRow, this.currentColumn);
     }
 
     addScore(score) {
@@ -488,7 +507,7 @@ class Block {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.blockCells[r][c] == window.Game.FULL)
+                if(this.blockCells[r][c] == window.Game.EMPTY)
                 {
                     let y = currentRow + r;
                     let x = currentColumn + c;
