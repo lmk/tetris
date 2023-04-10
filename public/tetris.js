@@ -17,8 +17,8 @@ function createStartButton() {
 class Game {
 
     row = 20;
-    column = 20;
-    MIDDLE = 9;     // (column-2)/2
+    column = 15;
+    MIDDLE = parseInt((this.column-2)/2);
     EMPTY = 0;
     FULL = 1;
     CURRENT = 2;    // current moving block
@@ -27,7 +27,10 @@ class Game {
 
     Init() {
 
-        this.gameBoard = new Board();
+        if (this.gameBoard == undefined) {
+            this.gameBoard = new Board();
+        }
+
         this.gameBoard.Init();
 
         this.drawGameMap();
@@ -60,10 +63,6 @@ class Game {
         $("#nextBlock").html(html);
     }
 
-    Start() {
-        this.gameBoard.Start();
-    }
-
     GameOver()
     {
         alert("Game over, please refresh the page to start new game");
@@ -94,6 +93,11 @@ class Board {
             }
             this.cells[row] = rowObject;
         }
+
+        this.clearGameBoard();
+
+        this.score = 0;
+        $("#score").text(this.score);
     }
 
     clearGameBoard() {
@@ -103,15 +107,15 @@ class Board {
             {
                 $("#r"+row+"c"+column).removeClass("cell");
                 $("#r"+row+"c"+column).removeClass("block");
-                $("#r"+row+"c"+column).removeClass("animate");
+                $("#r"+row+"c"+column).removeClass("bingo");
             }
         }
     }
 
-    animateRow(row) {
+    bingoRow(row) {
         for(let column=0; column< window.Game.column;column++)
         {
-            $("#r"+row+"c"+column).addClass("animate");
+            $("#r"+row+"c"+column).addClass("bingo");
         }
     }
 
@@ -131,14 +135,14 @@ class Board {
                 }
                 $("#r"+row+"c"+column).removeClass("cell");
                 $("#r"+row+"c"+column).removeClass("block");
-                $("#r"+row+"c"+column).removeClass("animate");
+                $("#r"+row+"c"+column).removeClass("bingo");
                 $("#r"+row+"c"+column).addClass(className);
             }
         }
     }
 
     isSafeToRotateBlock() {
-        let rotateBlock = this.currentBlock;
+        let rotateBlock = Block.Clone(this.currentBlock);
         rotateBlock.RotateCell();
 
         for(let r=0; r<4; r++)
@@ -160,8 +164,33 @@ class Board {
                 }
             }
         }
+
         return true;
     }
+
+    isSafeNewBlock() {
+        for(let r=0; r<4; r++)
+        {
+            for(let c=0; c<4; c++)
+            {
+                if(this.nextBlock.blockCells[r][c] == window.Game.FULL)
+                {
+                    let y = this.currentRow + r;
+                    let x = this.currentColumn + c;
+                    if(y<0 || y>=window.Game.row || x<0 || x>=window.Game.column)
+                    {
+                        return false;
+                    }
+                    if(this.cells[y][x] == window.Game.FULL)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
 
     isSafeToMoveDownBlock() {
         for(let r=0; r<4; r++)
@@ -287,6 +316,8 @@ class Board {
             }
         }
 
+        this.NextTern();
+
         return true;
     }
 
@@ -333,10 +364,10 @@ class Board {
 
     processFullRow() {
 
+        let countFull = 0;
         for(let row=window.Game.row-1; row>=0; row--)
         {
             let isFull = true;
-            let countFull = 0;
             for(let column=0; column< window.Game.column; column++)
             {
                 if(this.cells[row][column] == window.Game.EMPTY)
@@ -355,11 +386,11 @@ class Board {
                         this.cells[r][c] = this.cells[r-1][c];
                     }
                 }
-                this.animateRow(row);
+                this.bingoRow(row);
                 countFull++;
                 row++;
 
-                addScore(10 * (countFull*countFull));
+                this.addScore(10 * countFull);
             }
         }
     }
@@ -385,12 +416,23 @@ class Board {
 
 
     NextTern() {
-        print("NextTern");
-        this.saveCurrentBlock();
         this.currentToFull();
         this.processFullRow();
+        this.DrawGameBoard();
+
+        this.currentRow = 0;
+        this.currentColumn = window.Game.MIDDLE;
         this.currentBlock = this.nextBlock;
+
         this.createNextBlock();
+        if (this.isSafeNewBlock() == false)
+        {
+            return false;
+        }
+
+        this.saveCurrentBlock();
+
+        return true;
     }
 
     Start() {
@@ -459,15 +501,26 @@ class Block {
         return newBlock;
     }
 
+    static Clone(block) {
+        let newBlock = new Block();
+
+        for(let r=0; r<4; r++)
+        {
+            newBlock.blockCells[r] = [];
+            for(let c=0; c<4; c++)
+            {
+                newBlock.blockCells[r][c] = block.blockCells[r][c];
+            }
+        }
+
+        return newBlock;
+    }
+
     set(index) {
         this.blockCells = this.Shape[index];
     }
 
     drawNext() {
-        if (this.blockCells == undefined) {
-            print("blockCells is undefined");
-        }
-
         for(let r=0; r<4; r++)
         {
             for(let c=0; c<4; c++)
@@ -482,9 +535,6 @@ class Block {
                 }
             }
         }
-        print("drawNext")
-        print(this.blockCells)
-
     }
 
     Draw(currentRow, currentColumn) {
@@ -507,7 +557,7 @@ class Block {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.blockCells[r][c] == window.Game.EMPTY)
+                if(this.blockCells[r][c] == window.Game.FULL)
                 {
                     let y = currentRow + r;
                     let x = currentColumn + c;
@@ -586,12 +636,15 @@ function CreateGame() {
 }
 
 function StartPlay() {
-    window.Game.Start();
+    window.Game.Init();
+    window.Game.gameBoard.Start();
 
     window.timer = window.setInterval(function()
     {
         if (window.Game.gameBoard.MoveDownBlock() == false) {
-            window.Game.GameOver();
+            if (window.Game.gameBoard.NextTern() == false) {
+                window.Game.GameOver();
+            }
         }
     },1000);
 }
