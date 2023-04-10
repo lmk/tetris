@@ -25,6 +25,14 @@
     padding: 0 20px;
 }
 
+#roomList .no-room {
+    width: 60%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: #ffff00
+}
+
 #roomList .room .room-info {
     width: 60%;
     height: 100%;

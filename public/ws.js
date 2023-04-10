@@ -40,7 +40,7 @@ var messageHandler = function(data) {
           $('#roomList').append('<div class="room" id="'+room.RoomId+'">' + room.RoomId + '<button class="joinButton">JOIN</button></div>');
         }
       } else {
-        $('#roomList').text("No room")
+        $('#roomList').text('<div class="no-room"' + 'No room' + '</div>')
       }
       break;
 
