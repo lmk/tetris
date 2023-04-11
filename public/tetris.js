@@ -607,24 +607,29 @@ function CreateGame() {
                 if (window.Game.gameBoard.MoveBottomBlock() == false) {
                     window.Game.GameOver();
                 }
+                e.preventDefault();
             }
             if (e.keyCode == 38) //up
             {
                 window.Game.gameBoard.RotateBlock();
+                e.preventDefault();
             }
             if (e.keyCode == 37) //left
             {
                 window.Game.gameBoard.MoveLeftBlock();
+                e.preventDefault();
             }
             if(e.keyCode == 39) //Right
             {
                 window.Game.gameBoard.MoveRightBlock();
+                e.preventDefault();
             }
             if(e.keyCode == 40) //Down
             {
                 if (window.Game.gameBoard.MoveDownBlock() == false) {
                     window.Game.GameOver();
                 }
+                e.preventDefault();
             }
         }
         catch(e)
@@ -648,3 +653,5 @@ function StartPlay() {
         }
     },1000);
 }
+  
+  
