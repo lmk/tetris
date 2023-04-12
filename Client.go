@@ -59,6 +59,8 @@ func (client *Client) Read() {
 			break
 		}
 
+		msg.Client = client
+
 		Info.Printf("[READ] %v", msg)
 
 		client.ws.broadcast <- &msg
@@ -72,19 +74,17 @@ func (client *Client) Write() {
 	}()
 
 	for {
-		select {
-		case message, ok := <-client.send:
-			Info.Printf("[WRITE] %v %v", ok, message)
-			if !ok {
-				// The ws closed the channel.
-				client.socket.WriteMessage(websocket.CloseMessage, []byte{})
+		message, ok := <-client.send
+		Info.Printf("[WRITE] %v %v", ok, message)
+		if !ok {
+			// The ws closed the channel.
+			client.socket.WriteMessage(websocket.CloseMessage, []byte{})
+			return
+		} else {
+			err := client.socket.WriteJSON(message)
+			if err != nil {
+				Error.Println("Write Error:", err)
 				return
-			} else {
-				err := client.socket.WriteJSON(message)
-				if err != nil {
-					Error.Println("Write Error:", err)
-					return
-				}
 			}
 		}
 	}

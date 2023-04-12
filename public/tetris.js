@@ -16,51 +16,22 @@ function createStartButton() {
 
 class Game {
 
-    row = 20;
-    column = 15;
-    MIDDLE = parseInt((this.column-2)/2);
+    row = 15;
+    column = 10;
+    MIDDLE = parseInt((this.column-3)/2);
     EMPTY = 0;
     FULL = 1;
     CURRENT = 2;    // current moving block
 
-    gameBoard = undefined;
+    myBoard = undefined;
 
     Init() {
 
-        if (this.gameBoard == undefined) {
-            this.gameBoard = new Board();
+        if (this.myBoard == undefined) {
+            this.myBoard = new Board();
         }
 
-        this.gameBoard.Init();
-
-        this.drawGameMap();
-    }
-
-    drawGameMap ()
-    {
-        let html ="";
-        for(let i=0;i<this.row;i++)
-        {
-            html+="<tr>";
-            for(let j=0;j<this.column;j++)
-            {
-                html+="<td id='r"+i+"c"+j+"' class='cell'></td>";
-            }
-            html+="</tr>";
-        }
-        $("#board").html(html);
-
-        html="";
-        for(let i=0;i<4;i++)
-        {
-            html+="<tr>";
-            for(let j=0;j<4;j++)
-            {
-                html+="<td id='pr"+i+"pc"+j+"' class='cell'></td>";
-            }
-            html+="</tr>";
-        }
-        $("#nextBlock").html(html);
+        this.myBoard.Init("#my-board", "#my-score", "#my-nextBlock");
     }
 
     GameOver()
@@ -76,13 +47,31 @@ class Board {
     cells = []; // the game board (Game.row x Game.column)
     score = 0;
 
-    nextBlock = undefined;
+    nextBlocks = [];
     currentBlock = undefined;
 
     currentRow = 0;
     currentColumn = window.Game.MIDDLE; //To start at the middle
 
-    Init() {
+    // html element name
+    boardID = undefined;
+    scoreID = undefined;
+    nextBlockID = undefined;
+
+    AppendNextBlock(blocks) {
+
+        blocks.forEach((index) => {
+             let block = Block.New(index);
+             this.nextBlocks.push(block);
+        });
+    }
+
+    Init(boardID, scoreID, nextBlockID) {
+
+        this.boardID = boardID;
+        this.scoreID = scoreID;
+        this.nextBlockID = nextBlockID;
+
         for(let row=0;row< window.Game.row;row++)
         {
             let rowObject =[];
@@ -94,52 +83,41 @@ class Board {
             this.cells[row] = rowObject;
         }
 
-        this.clearGameBoard();
+        this.initBoard();
 
         this.score = 0;
-        $("#score").text(this.score);
+        $(scoreID).text(this.score);
     }
 
-    clearGameBoard() {
-        for(let row=0;row< window.Game.row;row++)
+    initBoard ()
+    {
+        let html ="";
+        for(let i=0;i<window.Game.row;i++)
         {
-            for(let column=0; column< window.Game.column;column++)
+            html+="<tr>";
+            for(let j=0;j<window.Game.column;j++)
             {
-                $("#r"+row+"c"+column).removeClass("cell");
-                $("#r"+row+"c"+column).removeClass("block");
-                $("#r"+row+"c"+column).removeClass("bingo");
+                html+="<td id='r"+i+"c"+j+"' class='cell'></td>";
             }
+            html+="</tr>";
         }
-    }
+        $(this.boardID).html(html);
 
-    bingoRow(row) {
-        for(let column=0; column< window.Game.column;column++)
+        html="";
+        for(let i=0;i<4;i++)
         {
-            $("#r"+row+"c"+column).addClass("bingo");
-        }
-    }
-
-    DrawGameBoard() {
-        for(let row=0;row< window.Game.row;row++)
-        {
-            for(let column=0; column< window.Game.column;column++)
+            html+="<tr>";
+            for(let j=0;j<4;j++)
             {
-                let className;
-                if(this.cells[row][column] == window.Game.EMPTY)
-                {
-                    className = "cell";
-                }
-                else
-                {
-                    className = "block";
-                }
-                $("#r"+row+"c"+column).removeClass("cell");
-                $("#r"+row+"c"+column).removeClass("block");
-                $("#r"+row+"c"+column).removeClass("bingo");
-                $("#r"+row+"c"+column).addClass(className);
+                html+="<td id='pr"+i+"pc"+j+"' class='preview-cell'></td>";
             }
+            html+="</tr>";
         }
+        $(this.nextBlockID + "0").html(html);
+        $(this.nextBlockID + "1").html(html);
+        $(this.nextBlockID + "2").html(html);
     }
+
 
     isSafeToRotateBlock() {
         let rotateBlock = Block.Clone(this.currentBlock);
@@ -169,11 +147,14 @@ class Board {
     }
 
     isSafeNewBlock() {
+
+        let newBlock = this.nextBlocks[0];
+
         for(let r=0; r<4; r++)
         {
             for(let c=0; c<4; c++)
             {
-                if(this.nextBlock.blockCells[r][c] == window.Game.FULL)
+                if(newBlock.blockCells[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -336,7 +317,10 @@ class Board {
             }
         }
 
-        this.currentBlock.Draw(this.currentRow, this.currentColumn);
+        let row = this.currentRow;
+        let column = this.currentColumn;
+
+        DrawBlock(this.boardID, this.currentBlock, row, column);
     }
 
     removeCurrentBlock() {
@@ -354,17 +338,21 @@ class Board {
             }
         }
 
-        this.currentBlock.Erase(this.currentRow, this.currentColumn);
+        let row = this.currentRow;
+        let column = this.currentColumn;
+
+        EraseBlock(this.boardID, this.currentBlock, row, column);
     }
 
     addScore(score) {
         this.score += score;
-        $("#score").text(this.score);
+        $(this.scoreID).text(this.score);
     }
 
     processFullRow() {
 
         let countFull = 0;
+
         for(let row=window.Game.row-1; row>=0; row--)
         {
             let isFull = true;
@@ -379,6 +367,13 @@ class Board {
 
             if(isFull)
             {
+                // hide row - element
+                for(let c=0; c< window.Game.column;c++)
+                {
+                    $(this.boardID).find("#r"+row+"c"+c).addClass("bingo")
+                }
+        
+                // move row - cells
                 for(let r=row; r>0; r--)
                 {
                     for(let c=0; c< window.Game.column; c++)
@@ -386,7 +381,23 @@ class Board {
                         this.cells[r][c] = this.cells[r-1][c];
                     }
                 }
-                this.bingoRow(row);
+
+                // move row - element attribute
+                for(let r=row; r>0; r--)
+                {
+                    for(let c=0; c< window.Game.column; c++)
+                    {
+                        let hClass = $(this.boardID).find("#r"+(r-1)+"c"+c).attr("class");
+                        $(this.boardID).find("#r"+r+"c"+c).removeAttr("class").addClass(hClass);
+                    }
+                }
+
+                // clear first row - element
+                for(let c=0; c< window.Game.column; c++)
+                {
+                    $(this.boardID).find("#r0c"+c).removeAttr("class").addClass("cell");
+                }                
+
                 countFull++;
                 row++;
 
@@ -396,7 +407,9 @@ class Board {
     }
 
     createNextBlock() {
-        this.nextBlock = Block.Create(Math.floor(Math.random()*8));
+        if (this.nextBlocks.length < 10) {
+            send("new-block", (10 - this.nextBlocks.length).toString());
+        }
     }
 
     currentToFull() {
@@ -415,20 +428,27 @@ class Board {
     }
 
 
+    ChangeCurrnetBlock() {
+        this.currentBlock = this.nextBlocks.shift();
+        DrawNextBlock(this.nextBlockID + "0", this.nextBlocks[0]);
+        DrawNextBlock(this.nextBlockID + "1", this.nextBlocks[1]);
+        DrawNextBlock(this.nextBlockID + "2", this.nextBlocks[2]);
+    }
+
     NextTern() {
         this.currentToFull();
         this.processFullRow();
-        this.DrawGameBoard();
-
+   
         this.currentRow = 0;
         this.currentColumn = window.Game.MIDDLE;
-        this.currentBlock = this.nextBlock;
+        this.ChangeCurrnetBlock();
 
         this.createNextBlock();
         if (this.isSafeNewBlock() == false)
         {
             return false;
         }
+
 
         this.saveCurrentBlock();
 
@@ -437,13 +457,19 @@ class Board {
 
     Start() {
         this.createNextBlock();
-        this.currentBlock = this.nextBlock;
-        this.createNextBlock();
+        let timer = window.setInterval(function()
+        {
+            clearTimeout(timer);
+            window.Game.myBoard.ChangeCurrnetBlock();
+
+        },100);        
     }
 
 }
 
 class Block {
+
+    Index = -1;
 
     //block is a two dimensional mtatrix of 4*4
     blockCells =[];
@@ -492,17 +518,19 @@ class Block {
         ],
     ];
 
-    static Create(index) {
+    static New(index) {
         let newBlock = new Block();
 
-        newBlock.set(index);
-        newBlock.drawNext();
+        newBlock.Index = index;
+        newBlock.blockCells = newBlock.Shape[index];
 
         return newBlock;
     }
 
     static Clone(block) {
         let newBlock = new Block();
+
+        newBlock.Index = block.Index;
 
         for(let r=0; r<4; r++)
         {
@@ -514,57 +542,6 @@ class Block {
         }
 
         return newBlock;
-    }
-
-    set(index) {
-        this.blockCells = this.Shape[index];
-    }
-
-    drawNext() {
-        for(let r=0; r<4; r++)
-        {
-            for(let c=0; c<4; c++)
-            {
-                if(this.blockCells[r][c] == window.Game.FULL)
-                {
-                    $("#pr"+r+"pc"+c).addClass("block");
-                }
-                else
-                {
-                    $("#pr"+r+"pc"+c).removeClass("block");
-                }
-            }
-        }
-    }
-
-    Draw(currentRow, currentColumn) {
-        for(let r=0; r<4; r++)
-        {
-            for(let c=0; c<4; c++)
-            {
-                if(this.blockCells[r][c] == window.Game.FULL)
-                {
-                    let y = currentRow + r;
-                    let x = currentColumn + c;
-                    $("#r"+y+"c"+x).addClass("block");
-                }
-            }
-        }
-    }
-
-    Erase(currentRow, currentColumn) {
-        for(let r=0; r<4; r++)
-        {
-            for(let c=0; c<4; c++)
-            {
-                if(this.blockCells[r][c] == window.Game.FULL)
-                {
-                    let y = currentRow + r;
-                    let x = currentColumn + c;
-                    $("#r"+y+"c"+x).removeClass("block");
-                }
-            }
-        }
     }
 
     NewEmptyCell() {
@@ -604,30 +581,30 @@ function CreateGame() {
         {
             if(e.keyCode == 32) //space
             {
-                if (window.Game.gameBoard.MoveBottomBlock() == false) {
-                    window.Game.GameOver();
+                if (window.Game.myBoard.MoveBottomBlock() == false) {
+                    send("over-game", "to-bottom")
                 }
                 e.preventDefault();
             }
             if (e.keyCode == 38) //up
             {
-                window.Game.gameBoard.RotateBlock();
+                window.Game.myBoard.RotateBlock();
                 e.preventDefault();
             }
             if (e.keyCode == 37) //left
             {
-                window.Game.gameBoard.MoveLeftBlock();
+                window.Game.myBoard.MoveLeftBlock();
                 e.preventDefault();
             }
             if(e.keyCode == 39) //Right
             {
-                window.Game.gameBoard.MoveRightBlock();
+                window.Game.myBoard.MoveRightBlock();
                 e.preventDefault();
             }
             if(e.keyCode == 40) //Down
             {
-                if (window.Game.gameBoard.MoveDownBlock() == false) {
-                    window.Game.GameOver();
+                if (window.Game.myBoard.MoveDownBlock() == false) {
+                    send("over-game", "to-down")
                 }
                 e.preventDefault();
             }
@@ -635,23 +612,60 @@ function CreateGame() {
         catch(e)
         {
             print(e);
-            window.Game.GameOver();
+            send("over-game", "error: " + e)
         }
     });
 }
 
 function StartPlay() {
-    window.Game.Init();
-    window.Game.gameBoard.Start();
+    send("start-game", "");
+}
 
-    window.timer = window.setInterval(function()
+function DrawBlock(id, block, currentRow, currentColumn) {
+    for(let r=0; r<4; r++)
     {
-        if (window.Game.gameBoard.MoveDownBlock() == false) {
-            if (window.Game.gameBoard.NextTern() == false) {
-                window.Game.GameOver();
+        for(let c=0; c<4; c++)
+        {
+            if(block.blockCells[r][c] == window.Game.FULL)
+            {
+                let y = currentRow + r;
+                let x = currentColumn + c;
+                $(id).find("#r"+y+"c"+x).addClass("block block" + block.Index);
             }
         }
-    },1000);
+    }
 }
-  
-  
+
+function EraseBlock(id, block, currentRow, currentColumn) {
+    for(let r=0; r<4; r++)
+    {
+        for(let c=0; c<4; c++)
+        {
+            if(block.blockCells[r][c] == window.Game.FULL)
+            {
+                let y = currentRow + r;
+                let x = currentColumn + c;
+                $(id).find("#r"+y+"c"+x).removeAttr('class').addClass('cell');
+            }
+        }
+    }
+}
+
+function DrawNextBlock(id, block) {
+    for(let r=0; r<4; r++)
+    {
+        for(let c=0; c<4; c++)
+        {
+            let obj = $(id).find("#pr"+r+"pc"+c);
+
+            if(block.blockCells[r][c] == window.Game.FULL)
+            {
+                obj.removeAttr('class').addClass('preview-cell preview-block block' + block.Index);
+            }
+            else
+            {
+                obj.removeAttr('class').addClass('preview-cell');
+            }
+        }
+    }
+}

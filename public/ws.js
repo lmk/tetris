@@ -25,14 +25,14 @@ var send = function(action, msg) {
 }
 
 var messageHandler = function(data) {
-  print("RECV");
+  print("RECV: " + data.action);
+  print(data);
   switch (data.action) {
     case 'new-nick':
       $('#nick').val(data.msg);
       break;
 
     case 'list-room':
-      print(data);
       if (data.roomList != null) {
         $('#roomList').text("")
         for (var i = 0; i < data.roomList.length; i++) {
@@ -45,22 +45,53 @@ var messageHandler = function(data) {
       break;
 
     case 'new-room':
-      print(data);
       break;
 
     case 'join-room':
-      print(data);
-      $('#room').hide();
-      $('#game').show();
-      createStartButton();
+      if (data.sender == $('#nick').val()) {
+        $('#room').hide();
+        $('#game').show();
+        createStartButton();
+      }
       break;
 
     case 'leave-room':
-      print(data);
+      if (data.sender == $('#nick').val()) {
+        $('#game').hide();
+        $('#room').show();
+        send('list-room', "") 
+      }
+      break;
+
+    case 'start-game':
+      window.Game.Init();
+      window.Game.myBoard.Start();
+  
+      window.timer = window.setInterval(function()
+      {
+          if (window.Game.myBoard.MoveDownBlock() == false) {
+              if (window.Game.myBoard.NextTern() == false) {
+                send("over-game", "next-tern-fail")
+              }
+          }
+      }, 1000);
+      break;
+      
+    case 'over-game':
+      print("over-game")
+      print(data)
+      if (data.sender == $('#nick').val()) {
+           window.Game.GameOver();
+      }
+      break;
+
+    case 'new-block':
+      if (data.sender == $('#nick').val()) {
+        window.Game.myBoard.AppendNextBlock(JSON.parse(data.msg));
+      }
       break;
 
     default:
-      print(data);
       break;
   }
 }

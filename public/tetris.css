@@ -1,3 +1,8 @@
+div
+{
+    border: 1px dotted gray;
+}
+
 .game
 {
     width:100%;
@@ -10,8 +15,47 @@
 {
     width:25px;
     height:25px;
-    background:linear-gradient(to bottom,#A8CFF1,#81B6E4) !important;
     border:1px solid white;
+}
+
+.block0
+{
+    background:linear-gradient(to bottom,#A8CFF1,#81B6E4) !important;
+}
+
+.block1
+{
+    background:linear-gradient(to bottom,#f1f0a8,#e2e481) !important;
+}
+
+.block2
+{
+    background:linear-gradient(to bottom,#f1a8a8,#e48181) !important;
+}
+
+.block3
+{
+    background:linear-gradient(to bottom,#f1d1a8,#e4bc81) !important;
+}
+
+.block4
+{
+    background:linear-gradient(to bottom,#a8f1a8,#92e481) !important;
+}
+
+.block5
+{
+    background:linear-gradient(to bottom,#a8adf1,#8188e4) !important;
+}
+
+.block6
+{
+    background:linear-gradient(to bottom,#c8a8f1,#b481e4) !important;
+}
+
+.block7
+{
+    background:linear-gradient(to bottom,#eba8f1,#e181e4) !important;
 }
 
 .cell
@@ -19,27 +63,26 @@
     width:25px;
     height:25px;
     background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
-    background:gray;
+    background: lightgrey;
 }
 
 .preview-block
 {
-    width:5px;
-    height:5px;
-    background:linear-gradient(to bottom,#A8CFF1,#81B6E4) !important;
+    width:10px;
+    height:10px;
     border:1px solid white;
 }
 
 .preview-cell
 {
-    width:5px;
-    height:5px;
+    width:10px;
+    height:10px;
     background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
-    background:gray;
+    background:lightgrey;
 }
 
 .bingo
 {
-    background:linear-gradient(to bottom,#fffbc1,#f8ee60) !important;
+    background:linear-gradient(to bottom,#ffc1c1,#f86060) !important;
     transition:all 0.3s linear;
 }

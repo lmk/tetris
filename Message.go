@@ -5,4 +5,5 @@ type Message struct {
 	Sender   string     `json:"sender"`
 	Msg      string     `json:"msg,omitempty"`
 	RoomList []RoomInfo `json:"roomList,omitempty"`
+	Client   *Client    `json:"-"`
 }
