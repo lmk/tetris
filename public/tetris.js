@@ -23,6 +23,50 @@ class Game {
     FULL = 1;
     CURRENT = 2;    // current moving block
 
+    SHAPES = [
+        [
+            [0,0,0,0],
+            [1,1,1,0],
+            [0,1,0,0],
+            [0,0,0,0],
+        ], [
+            [0,0,0,0],
+            [1,1,1,1],
+            [0,0,0,0],
+            [0,0,0,0],
+        ], [
+            [0,0,0,0],
+            [0,1,1,0],
+            [0,1,1,0],
+            [0,0,0,0],
+        ], [
+            [0,1,0,0],
+            [0,1,1,0],
+            [0,0,1,0],
+            [0,0,0,0]
+        ], [
+            [0,1,0,0],
+            [0,1,0,0],
+            [0,1,1,0],
+            [0,0,0,0]
+        ], [
+            [0,0,1,0],
+            [0,0,1,0],
+            [0,1,1,0],
+            [0,0,0,0]
+        ], [
+            [0,0,1,0],
+            [0,1,1,0],
+            [0,1,0,0],
+            [0,0,0,0]
+        ], [
+            [0,1,0,0],
+            [0,1,0,0],
+            [0,1,0,0],
+            [0,1,0,0]
+        ],
+    ];    
+
     myBoard = undefined;
 
     Init() {
@@ -121,13 +165,13 @@ class Board {
 
     isSafeToRotateBlock() {
         let rotateBlock = Block.Clone(this.currentBlock);
-        rotateBlock.RotateCell();
+        rotateBlock.Rotate();
 
         for(let r=0; r<4; r++)
         {
             for(let c=0; c<4; c++)
             {
-                if(rotateBlock.blockCells[r][c] == window.Game.FULL)
+                if(rotateBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -154,7 +198,7 @@ class Board {
         {
             for(let c=0; c<4; c++)
             {
-                if(newBlock.blockCells[r][c] == window.Game.FULL)
+                if(newBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -178,7 +222,7 @@ class Board {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if(this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r +1;
                     let x = this.currentColumn + c;
@@ -201,7 +245,7 @@ class Board {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if(this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c -1;
@@ -224,7 +268,7 @@ class Board {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if(this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c +1;
@@ -250,7 +294,7 @@ class Board {
         }
 
         this.removeCurrentBlock();
-        this.currentBlock.RotateCell();
+        this.currentBlock.Rotate();
         this.saveCurrentBlock();
     }
 
@@ -307,7 +351,7 @@ class Board {
         {
             for(let c =0; c<4; c++)
             {
-                if( this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if( this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -328,7 +372,7 @@ class Board {
         {
             for(let c =0; c<4; c++)
             {
-                if( this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if( this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -417,7 +461,7 @@ class Board {
         {
             for(let c=0; c<4; c++)
             {
-                if(this.currentBlock.blockCells[r][c] == window.Game.FULL)
+                if(this.currentBlock.Shape[r][c] == window.Game.FULL)
                 {
                     let y = this.currentRow + r;
                     let x = this.currentColumn + c;
@@ -472,57 +516,13 @@ class Block {
     Index = -1;
 
     //block is a two dimensional mtatrix of 4*4
-    blockCells =[];
-
-    Shape = [
-        [
-            [0,0,0,0],
-            [1,1,1,0],
-            [0,1,0,0],
-            [0,0,0,0],
-        ], [
-            [0,0,0,0],
-            [1,1,1,1],
-            [0,0,0,0],
-            [0,0,0,0],
-        ], [
-            [0,0,0,0],
-            [0,1,1,0],
-            [0,1,1,0],
-            [0,0,0,0],
-        ], [
-            [0,1,0,0],
-            [0,1,1,0],
-            [0,0,1,0],
-            [0,0,0,0]
-        ], [
-            [0,1,0,0],
-            [0,1,0,0],
-            [0,1,1,0],
-            [0,0,0,0]
-        ], [
-            [0,0,1,0],
-            [0,0,1,0],
-            [0,1,1,0],
-            [0,0,0,0]
-        ], [
-            [0,0,1,0],
-            [0,1,1,0],
-            [0,1,0,0],
-            [0,0,0,0]
-        ], [
-            [0,1,0,0],
-            [0,1,0,0],
-            [0,1,0,0],
-            [0,1,0,0]
-        ],
-    ];
+    Shape =[];
 
     static New(index) {
         let newBlock = new Block();
 
         newBlock.Index = index;
-        newBlock.blockCells = newBlock.Shape[index];
+        newBlock.Shape = window.Game.SHAPES[index];
 
         return newBlock;
     }
@@ -534,10 +534,10 @@ class Block {
 
         for(let r=0; r<4; r++)
         {
-            newBlock.blockCells[r] = [];
+            newBlock.Shape[r] = [];
             for(let c=0; c<4; c++)
             {
-                newBlock.blockCells[r][c] = block.blockCells[r][c];
+                newBlock.Shape[r][c] = block.Shape[r][c];
             }
         }
 
@@ -557,16 +557,16 @@ class Block {
         return cell;
     }
 
-    RotateCell() {
-        let rotateCell = this.NewEmptyCell();
+    Rotate() {
+        let cell = this.NewEmptyCell();
         for(let r=0; r<4; r++)
         {
             for(let c=0; c<4; c++)
             {
-                rotateCell[c][r] = this.blockCells[r][3-c];
+                cell[c][r] = this.Shape[r][3-c];
             }
         }
-        this.blockCells = rotateCell;
+        this.Shape = cell;
     }
 }
 
@@ -626,7 +626,7 @@ function DrawBlock(id, block, currentRow, currentColumn) {
     {
         for(let c=0; c<4; c++)
         {
-            if(block.blockCells[r][c] == window.Game.FULL)
+            if(block.Shape[r][c] == window.Game.FULL)
             {
                 let y = currentRow + r;
                 let x = currentColumn + c;
@@ -641,7 +641,7 @@ function EraseBlock(id, block, currentRow, currentColumn) {
     {
         for(let c=0; c<4; c++)
         {
-            if(block.blockCells[r][c] == window.Game.FULL)
+            if(block.Shape[r][c] == window.Game.FULL)
             {
                 let y = currentRow + r;
                 let x = currentColumn + c;
@@ -658,7 +658,7 @@ function DrawNextBlock(id, block) {
         {
             let obj = $(id).find("#pr"+r+"pc"+c);
 
-            if(block.blockCells[r][c] == window.Game.FULL)
+            if(block.Shape[r][c] == window.Game.FULL)
             {
                 obj.removeAttr('class').addClass('preview-cell preview-block block' + block.Index);
             }

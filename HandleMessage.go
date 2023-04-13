@@ -5,12 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // sendInTheRoom 방에 있는 사용자에게 메시지를 보낸다.
 func (wss *WebsocketServer) sendInTheRoom(roomId int, message *Message) {

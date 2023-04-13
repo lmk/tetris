@@ -3,13 +3,19 @@
 package main
 
 import (
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // 웹 서버를 실행하는 함수
 func runServer() {
