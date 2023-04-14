@@ -14,6 +14,7 @@ type Client struct {
 	socket *websocket.Conn
 	send   chan *Message
 	ws     *WebsocketServer
+	game   *Game
 }
 
 func NewClient(roomId int, conn *websocket.Conn, ws *WebsocketServer) *Client {
@@ -25,6 +26,7 @@ func NewClient(roomId int, conn *websocket.Conn, ws *WebsocketServer) *Client {
 		socket: conn,
 		ws:     ws,
 		send:   make(chan *Message),
+		game:   nil,
 	}
 }
 
@@ -59,7 +61,13 @@ func (client *Client) Read() {
 			break
 		}
 
-		msg.Client = client
+		msg.roomId = client.roomId
+
+		if !client.ws.isVaildRoomId(msg.roomId) || !client.ws.isVaildNick(msg.roomId, msg.Sender) {
+			Warning.Println("Invalid RoomId or Nick:", msg)
+			client.send <- &Message{Action: "error", Data: "Invalid RoomId or Nick"}
+			break
+		}
 
 		Info.Printf("[READ] %v", msg)
 

@@ -1,7 +1,7 @@
 package main
 
 var (
-	SHAPES = [...][BLOCK_ROW][BLOCK_COLUMN]int{
+	SHAPES = [...][][]int{
 		{
 			{0, 0, 0, 0},
 			{1, 1, 1, 1},
@@ -42,32 +42,42 @@ var (
 )
 
 type Block struct {
-	row        int
-	col        int
-	shape      [BLOCK_ROW][BLOCK_COLUMN]int
-	shapeIndex int
+	Row        int     `json:"row"`
+	Col        int     `json:"col"`
+	Shape      [][]int `json:"shape"`
+	ShapeIndex int     `json:"shapeIndex"`
 }
 
-func (b *Block) cloneShape(shape [BLOCK_ROW][BLOCK_COLUMN]int) {
+func (b *Block) ShapeFrom(shape [][]int) {
+	b.Shape = make([][]int, BLOCK_ROW)
 	for i := 0; i < BLOCK_ROW; i++ {
-		for j := 0; j < BLOCK_COLUMN; j++ {
-			b.shape[i][j] = shape[i][j]
-		}
+		b.Shape[i] = make([]int, BLOCK_COLUMN)
+		copy(b.Shape[i], shape[i])
 	}
 }
 
+func (b *Block) ShapeTo() [][]int {
+	shape := make([][]int, BLOCK_ROW)
+	for i := 0; i < BLOCK_ROW; i++ {
+		shape[i] = make([]int, BLOCK_COLUMN)
+		copy(shape[i], b.Shape[i])
+	}
+
+	return shape
+}
+
 func (b *Block) Clone(from Block) {
-	b.row = from.row
-	b.col = from.col
-	b.shapeIndex = from.shapeIndex
-	b.cloneShape(from.shape)
+	b.Row = from.Row
+	b.Col = from.Col
+	b.ShapeIndex = from.ShapeIndex
+	b.ShapeFrom(from.Shape)
 }
 
 func NewBlock(shapeIndex int) Block {
 	block := Block{
-		row:        0,
-		col:        BOARD_CENTER,
-		shapeIndex: shapeIndex,
+		Row:        0,
+		Col:        BOARD_CENTER,
+		ShapeIndex: shapeIndex,
 	}
 	block.SetShape(shapeIndex)
 
@@ -75,16 +85,17 @@ func NewBlock(shapeIndex int) Block {
 }
 
 func (b *Block) SetShape(shapeIndex int) {
-	b.shapeIndex = shapeIndex
-	b.cloneShape(SHAPES[shapeIndex])
+	b.ShapeIndex = shapeIndex
+	b.ShapeFrom(SHAPES[shapeIndex-1])
 }
 
 func (b *Block) Rotate() {
-	var newShape [BLOCK_ROW][BLOCK_COLUMN]int
+	newShape := make([][]int, BLOCK_ROW)
 	for i := 0; i < BLOCK_ROW; i++ {
+		newShape[i] = make([]int, BLOCK_COLUMN)
 		for j := 0; j < BLOCK_COLUMN; j++ {
-			newShape[i][j] = b.shape[BLOCK_COLUMN-j-1][i]
+			newShape[i][j] = b.Shape[BLOCK_COLUMN-j-1][i]
 		}
 	}
-	b.cloneShape(newShape)
+	b.ShapeFrom(newShape)
 }

@@ -3,9 +3,6 @@ function createStartButton() {
     let button = $('<button id="startButton" />')
                     .text('START')
                     .click(function() {
-                        if (window.Game == undefined) {
-                            CreateGame();
-                        }
                         StartPlay();
 
                         // delete button
@@ -26,14 +23,15 @@ class Game {
     SHAPES = [
         [
             [0,0,0,0],
-            [1,1,1,0],
-            [0,1,0,0],
-            [0,0,0,0],
-        ], [
-            [0,0,0,0],
             [1,1,1,1],
             [0,0,0,0],
             [0,0,0,0],
+        ], [            
+            [0,0,0,0],
+            [1,1,1,0],
+            [0,1,0,0],
+            [0,0,0,0],
+
         ], [
             [0,0,0,0],
             [0,1,1,0],
@@ -59,11 +57,6 @@ class Game {
             [0,1,1,0],
             [0,1,0,0],
             [0,0,0,0]
-        ], [
-            [0,1,0,0],
-            [0,1,0,0],
-            [0,1,0,0],
-            [0,1,0,0]
         ],
     ];    
 
@@ -81,7 +74,7 @@ class Game {
     GameOver()
     {
         alert("Game over, please refresh the page to start new game");
-        clearInterval(timer);
+        //clearInterval(timer);
         createStartButton();
     }
 }
@@ -89,7 +82,7 @@ class Game {
 class Board {
 
     cells = []; // the game board (Game.row x Game.column)
-    score = 0;
+//    score = 0;
 
     nextBlocks = [];
     currentBlock = undefined;
@@ -102,12 +95,20 @@ class Board {
     scoreID = undefined;
     nextBlockID = undefined;
 
-    AppendNextBlock(blocks) {
+    SetNextBlock(blocks) {
+
+        this.nextBlocks = [];
 
         blocks.forEach((index) => {
              let block = Block.New(index);
              this.nextBlocks.push(block);
         });
+    }
+
+    SetCells(cells) {
+        this.cells = cells;
+
+        this.drawBoard();
     }
 
     Init(boardID, scoreID, nextBlockID) {
@@ -132,6 +133,51 @@ class Board {
         this.score = 0;
         $(scoreID).text(this.score);
     }
+
+    // DrawBoard (cells, block)
+    // {
+    //     this.cells = cells;
+
+    //     let html ="";
+    //     for(let r=0;r<window.Game.row;r++)
+    //     {
+    //         html+="<tr>";
+    //         for(let c=0;c<window.Game.column;c++)
+    //         {
+    //             let cl = "cell";
+    //             if (cells[r][c] != window.Game.EMPTY) 
+    //             {
+    //                 cl += " block block"+cells[r][c]
+    //             } 
+    //             if (this.inRect(r,c,block) && block.shape[r-block.row][c-block.col] != window.Game.EMPTY) {
+    //                 cl += " block block" + block.shapeIndex
+    //             } 
+                
+
+    //             html+="<td id='r"+r+"c"+c+"' class='"+cl+"'></td>";
+    //         }
+    //         html+="</tr>";
+    //     }
+    //     $(this.boardID).html(html);
+
+    //     html="";
+    //     for(let r=0;r<4;r++)
+    //     {
+    //         html+="<tr>";
+    //         for(let c=0;c<4;c++)
+    //         {
+    //             let cl = "preview-cell";
+    //             if (block.shape[r][c] != window.Game.EMPTY) {
+    //                 cl += " block block"+block.shapeIndex
+    //             } 
+    //             html+="<td id='pr"+r+"pc"+c+"' class='"+cl+"'></td>";
+    //         }
+    //         html+="</tr>";
+    //     }
+    //     $(this.nextBlockID + "0").html(html);
+    //     $(this.nextBlockID + "1").html(html);
+    //     $(this.nextBlockID + "2").html(html);
+    // }
 
     initBoard ()
     {
@@ -450,11 +496,11 @@ class Board {
         }
     }
 
-    createNextBlock() {
-        if (this.nextBlocks.length < 10) {
-            send("new-block", (10 - this.nextBlocks.length).toString());
-        }
-    }
+    // createNextBlock() {
+    //     if (this.nextBlocks.length < 10) {
+    //         send("next-block", "");
+    //     }
+    // }
 
     currentToFull() {
         for(let r=0; r<4; r++)
@@ -487,7 +533,7 @@ class Board {
         this.currentColumn = window.Game.MIDDLE;
         this.ChangeCurrnetBlock();
 
-        this.createNextBlock();
+        //this.createNextBlock();
         if (this.isSafeNewBlock() == false)
         {
             return false;
@@ -498,17 +544,6 @@ class Board {
 
         return true;
     }
-
-    Start() {
-        this.createNextBlock();
-        let timer = window.setInterval(function()
-        {
-            clearTimeout(timer);
-            window.Game.myBoard.ChangeCurrnetBlock();
-
-        },100);        
-    }
-
 }
 
 class Block {
@@ -522,7 +557,7 @@ class Block {
         let newBlock = new Block();
 
         newBlock.Index = index;
-        newBlock.Shape = window.Game.SHAPES[index];
+        newBlock.Shape = window.Game.SHAPES[index-1];
 
         return newBlock;
     }
@@ -668,4 +703,43 @@ function DrawNextBlock(id, block) {
             }
         }
     }
+}
+
+function inRect(row, col, block) {
+
+    return (block.row<=row && row<block.row+4 && block.col<=col && col<block.col+4)
+}
+
+
+function DrawBoard (block)
+{
+    let board = window.Game.myBoard;
+
+    let html ="";
+    for(let r=0;r<window.Game.row;r++)
+    {
+        html+="<tr>";
+        for(let c=0;c<window.Game.column;c++)
+        {
+            let cl = "cell";
+            if (board.cells[r][c] != window.Game.EMPTY) 
+            {
+                cl += " block block"+board.cells[r][c]
+            } 
+            if (inRect(r,c,block) && block.shape[r-block.row][c-block.col] != window.Game.EMPTY) {
+                cl += " block block" + block.shapeIndex
+            } 
+
+            html+="<td id='r"+r+"c"+c+"' class='"+cl+"'></td>";
+        }
+        html+="</tr>";
+    }
+    $(board.boardID).html(html);
+}
+
+function DrawNextBlocks() {
+    let board = window.Game.myBoard;
+    DrawNextBlock(board.nextBlockID + "0", board.nextBlocks[0]);
+    DrawNextBlock(board.nextBlockID + "1", board.nextBlocks[1]);
+    DrawNextBlock(board.nextBlockID + "2", board.nextBlocks[2]);
 }

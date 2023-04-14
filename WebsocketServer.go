@@ -45,7 +45,9 @@ func (wss *WebsocketServer) Run() {
 				wss.rooms[client.roomId] = connections
 			}
 			wss.rooms[client.roomId][client.nick] = client
-			client.send <- &Message{Action: "new-nick", Msg: client.nick}
+
+			// send random client nick to client
+			client.send <- &Message{Action: "new-nick", Data: client.nick}
 			Info.Printf("\t register %v:%v, %v", client.roomId, client.nick, len(wss.rooms[client.roomId]))
 
 		case client := <-wss.unregister:
@@ -56,6 +58,11 @@ func (wss *WebsocketServer) Run() {
 				}
 				close(client.send)
 			}
+
+			if client.game != nil && !client.game.IsGameOver() {
+				client.game.Stop()
+			}
+
 			Info.Printf("\t unregister %v:%v, %v", client.roomId, client.nick, len(wss.rooms[client.roomId]))
 
 		case message := <-wss.broadcast:

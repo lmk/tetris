@@ -11,32 +11,44 @@ var send = function(action, msg) {
   let data = {
     action: action,
     sender: $('#nick').val(),
-    msg: msg
+    data: msg
   };
 
-  print(ws)
-  print(JSON.stringify(data))
+  let json = JSON.stringify(data)
+
+  print(json)
 
   if (ws != null && ws.readyState == 1) {
-    ws.send(JSON.stringify(data));
+    ws.send(json);
   } else {
     print("websocket is not connected");
   }
 }
 
-var messageHandler = function(data) {
-  print("RECV: " + data.action);
-  print(data);
-  switch (data.action) {
+var messageHandler = function(msg) {
+  switch (msg.action) {
+
+    case 'error':
+      alert(msg.data);
+      break;
+
     case 'new-nick':
-      $('#nick').val(data.msg);
+      $('#nick').val(msg.data);
+      $('#newNick').val(msg.data);
+
+          // sleep 1초 room list 조회
+      setTimeout(() => send('list-room', ""), 1000)
+      break;
+
+    case 'set-nick':
+      $('#nick').val(msg.data);
       break;
 
     case 'list-room':
-      if (data.roomList != null) {
+      if (msg.roomList != null) {
         $('#roomList').text("")
-        for (var i = 0; i < data.roomList.length; i++) {
-          var room = data.roomList[i];
+        for (var i = 0; i < msg.roomList.length; i++) {
+          var room = msg.roomList[i];
           $('#roomList').append('<div class="room" id="'+room.RoomId+'">' + room.RoomId + '<button class="joinButton">JOIN</button></div>');
         }
       } else {
@@ -48,7 +60,7 @@ var messageHandler = function(data) {
       break;
 
     case 'join-room':
-      if (data.sender == $('#nick').val()) {
+      if (msg.sender == $('#nick').val()) {
         $('#room').hide();
         $('#game').show();
         createStartButton();
@@ -56,7 +68,7 @@ var messageHandler = function(data) {
       break;
 
     case 'leave-room':
-      if (data.sender == $('#nick').val()) {
+      if (msg.sender == $('#nick').val()) {
         $('#game').hide();
         $('#room').show();
         send('list-room', "") 
@@ -65,30 +77,25 @@ var messageHandler = function(data) {
 
     case 'start-game':
       window.Game.Init();
-      window.Game.myBoard.Start();
-  
-      window.timer = window.setInterval(function()
-      {
-          if (window.Game.myBoard.MoveDownBlock() == false) {
-              if (window.Game.myBoard.NextTern() == false) {
-                send("over-game", "next-tern-fail")
-              }
-          }
-      }, 1000);
       break;
       
     case 'over-game':
-      print("over-game")
-      print(data)
-      if (data.sender == $('#nick').val()) {
+      if (msg.sender == $('#nick').val()) {
            window.Game.GameOver();
       }
       break;
 
-    case 'new-block':
-      if (data.sender == $('#nick').val()) {
-        window.Game.myBoard.AppendNextBlock(JSON.parse(data.msg));
+    case 'sync-game':
+      if (msg.sender == $('#nick').val()) {
+        $('#score').text(msg.score);
+        window.Game.myBoard.cells = msg.cells;
+        DrawBoard(msg.cells, msg.block);
       }
+      break;
+
+    case 'next-block':
+      window.Game.myBoard.SetNextBlock(JSON.parse(msg.data));
+      DrawNextBlocks();
       break;
 
     default:
@@ -104,13 +111,15 @@ window.onload = function() {
   // let myNick = 'user' + Math.floor(Math.random() * 1000);
   // $('#nick').val(myNick);
 
+  if (window.Game == undefined) {
+    CreateGame();
+  }  
+
   // websocket 연결
   ws = new WebSocket("ws://localhost:8080/ws/list");
   ws.onopen = function(evt) {
     print("OPEN");
 
-    // sleep 1초 room list 조회
-    setTimeout(() => send('list-room', ""), 1000)
   }
 
   ws.onclose = function(evt) {
@@ -142,9 +151,12 @@ window.onload = function() {
   });
 */
   // newGame 버튼 을 클릭하면 새로운 방을 만든다.
-  var newGameButton = document.getElementById('newGame');
-  newGameButton.addEventListener('click', function() {
+  $('#newGame').click(function() {
     send('new-room', "")
+  });
+
+  $('#setNick').click(function() {
+    send('set-nick', $('#newNick').val())
   });
 
   // joinButton 을 클릭하면 방에 입장한다.
