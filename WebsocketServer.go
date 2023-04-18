@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -33,7 +34,19 @@ func NewWebsocketServer() *WebsocketServer {
 	}
 }
 
+func (wss *WebsocketServer) report() {
+
+	Info.Println("Websocket Server Report")
+
+	for roomId, clients := range wss.rooms {
+		Info.Printf("[%v: %v],", roomId, len(clients))
+	}
+}
+
 func (wss *WebsocketServer) Run() {
+
+	Info.Println("Websocket Server is running...")
+
 	for {
 
 		select {
@@ -67,6 +80,9 @@ func (wss *WebsocketServer) Run() {
 
 		case message := <-wss.broadcast:
 			wss.HandleMessage(message)
+
+		case <-time.After(time.Millisecond * time.Duration(10000)):
+			wss.report()
 		}
 	}
 }

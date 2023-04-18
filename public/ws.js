@@ -33,15 +33,14 @@ var messageHandler = function(msg) {
       break;
 
     case 'new-nick':
-      $('#nick').val(msg.data);
-      $('#newNick').val(msg.data);
+      window.Game.SetOwner(msg.data);
 
           // sleep 1초 room list 조회
       setTimeout(() => send('list-room', ""), 1000)
       break;
 
     case 'set-nick':
-      $('#nick').val(msg.data);
+      window.Game.SetOwner(msg.data);
       break;
 
     case 'list-room':
@@ -77,12 +76,17 @@ var messageHandler = function(msg) {
 
     case 'start-game':
       window.Game.Init();
+      window.Game.Start(msg.sender);
       DrawNextBlocks();
       break;
       
     case 'over-game':
-      if (msg.sender == $('#nick').val()) {
-           window.Game.GameOver();
+      if (msg.sender == $('#nick').val() && window.Game.myBoard.IsPlaying()) {
+        window.Game.GameOver(msg.sender);
+        alert("Game over, please refresh the page to start new game");
+        createStartButton();
+      } else {
+        window.Game.GameOver(msg.sender);
       }
       break;
 
@@ -96,7 +100,9 @@ var messageHandler = function(msg) {
 
     case 'next-block':
       window.Game.myBoard.SetNextBlock(JSON.parse(msg.data));
-      DrawNextBlocks();
+      if (window.Game.myBoard.IsPlaying()) {
+        DrawNextBlocks();
+      }
       break;
 
     default:
@@ -138,19 +144,6 @@ window.onload = function() {
       print("ERROR: " + evt.data);
   }
 
-  // room list 조회
-  //ws.send('list-room');
-/*
-  // room list 화면 표시
-  socket.on('list-room', function(data) {
-    var roomList = data.roomList;
-    var roomListElement = document.getElementById('roomList');
-    for (var i = 0; i < roomList.length; i++) {
-      var room = roomList[i];
-      $('#roomList').append('<div class="room" id="'+room.name+'">' + room.name + '<button class="joinButton">JOIN</button></div>');
-    }
-  });
-*/
   // newGame 버튼 을 클릭하면 새로운 방을 만든다.
   $('#newGame').click(function() {
     send('new-room', "")
