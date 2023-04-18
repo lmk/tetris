@@ -12,7 +12,7 @@ type Client struct {
 	roomId int
 	nick   string
 	socket *websocket.Conn
-	send   chan *Message
+	send   chan *Message // to websocket client
 	ws     *WebsocketServer
 	game   *Game
 }

@@ -17,8 +17,10 @@ const (
 )
 
 type Game struct {
-	client          *Client       // player
-	request         chan *Message // request from player
+	owner           string        // owner of game
+	ch              chan *Message // request from manager
+	managerCh       chan *Message // response to manager
+	Id              int           // game id
 	status          string        // ready-game, playing-game, over-game
 	cell            [][]int       // 0: empty, other: block index
 	score           int
@@ -28,15 +30,18 @@ type Game struct {
 }
 
 // NewGame create a new game
-// client: response channel to player
-func NewGame(client *Client) *Game {
+// ch: request channel
+// id: game id
+func NewGame(ch chan *Message, id int, owner string) *Game {
 	game := Game{
+		owner:        owner,
+		ch:           make(chan *Message),
+		managerCh:    ch,
+		Id:           id,
 		status:       "ready-game",
 		score:        0,
 		currentBlock: NewBlock((rand.Intn(len(SHAPES)) + 1)),
 		cycleMs:      1000,
-		request:      make(chan *Message),
-		client:       client,
 		cell:         make([][]int, BOARD_ROW),
 	}
 
@@ -47,6 +52,20 @@ func NewGame(client *Client) *Game {
 	game.CreateNextBlock()
 
 	return &game
+}
+
+func (g *Game) reset() {
+	g.score = 0
+	g.currentBlock = NewBlock((rand.Intn(len(SHAPES)) + 1))
+	g.cycleMs = 1000
+	g.cell = make([][]int, BOARD_ROW)
+	g.nextBlockIndexs = []int{}
+
+	for i := 0; i < BOARD_ROW; i++ {
+		g.cell[i] = make([]int, BOARD_COLUMN)
+	}
+
+	g.CreateNextBlock()
 }
 
 func (g *Game) CreateNextBlock() {
@@ -69,7 +88,7 @@ func (g *Game) isSafeToRoteate() bool {
 				y := r + block.Row
 				x := c + block.Col
 
-				if x < 0 || x >= BOARD_ROW || y < 0 || y >= BOARD_COLUMN {
+				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
@@ -93,7 +112,7 @@ func (g *Game) isSafeNewBlock() bool {
 				y := r + newBlock.Row
 				x := c + newBlock.Col
 
-				if x < 0 || x >= BOARD_ROW || y < 0 || y >= BOARD_COLUMN {
+				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
@@ -111,10 +130,10 @@ func (g *Game) isSafeToDown() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
 			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row
-				x := c + g.currentBlock.Col + 1
+				y := r + g.currentBlock.Row + 1
+				x := c + g.currentBlock.Col
 
-				if x < 0 || x >= BOARD_ROW || y < 0 || y >= BOARD_COLUMN {
+				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
@@ -132,10 +151,10 @@ func (g *Game) isSafeToLeft() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
 			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row - 1
-				x := c + g.currentBlock.Col
+				y := r + g.currentBlock.Row
+				x := c + g.currentBlock.Col - 1
 
-				if x < 0 || x >= BOARD_ROW || y < 0 || y >= BOARD_COLUMN {
+				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
@@ -153,10 +172,10 @@ func (g *Game) isSafeToRight() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
 			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row + 1
-				x := c + g.currentBlock.Col
+				y := r + g.currentBlock.Row
+				x := c + g.currentBlock.Col + 1
 
-				if x < 0 || x >= BOARD_ROW || y < 0 || y >= BOARD_COLUMN {
+				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
@@ -183,16 +202,7 @@ func (g *Game) currentBlockToBoard() {
 	}
 }
 
-func (g *Game) isFullLine(row int) bool {
-	for c := 0; c < BOARD_COLUMN; c++ {
-		if g.cell[row][c] == EMPTY {
-			return false
-		}
-	}
-	return true
-}
-
-func (g *Game) removeLine(row int) {
+func (g *Game) shiftDownCell(row int) {
 	for r := row; r > 0; r-- {
 		for c := 0; c < BOARD_COLUMN; c++ {
 			g.cell[r][c] = g.cell[r-1][c]
@@ -204,17 +214,77 @@ func (g *Game) removeLine(row int) {
 	}
 }
 
-func (g *Game) removeFullLine() int {
-	count := 0
-	for r := 0; r < BOARD_ROW; r++ {
-		if g.isFullLine(r) {
-			g.removeLine(r)
-			count++
-			g.score += (10 * count)
+func appendRow(cell [][]int, row []int) [][]int {
+
+	newLine := make([]int, len(row))
+	copy(newLine, row)
+
+	cell = append(cell, newLine)
+
+	return cell
+}
+
+// procFullLine
+// currentBlock 이 있는 row만 검사
+// full line이면 row를 삭제하고, 위 row를 한칸씩 내림
+// full line이 아니면, currentBlock를 board에 복사
+func (g *Game) procFullLine() [][]int {
+
+	removedLines := [][]int{}
+
+	maxRow := BOARD_ROW
+	if g.currentBlock.Row+BLOCK_ROW < BOARD_ROW {
+		maxRow = g.currentBlock.Row + BLOCK_ROW
+	}
+
+	for r := g.currentBlock.Row; r < maxRow; r++ {
+
+		y := r - g.currentBlock.Row
+		x := 0
+
+		isFull := true
+
+		for c := 0; c < BOARD_COLUMN; c++ {
+
+			x = c - g.currentBlock.Col
+
+			// if cell is empty, check current block
+			if g.cell[r][c] == EMPTY {
+
+				if g.currentBlock.inBlock(r, c) {
+
+					if g.currentBlock.Shape[y][x] == EMPTY {
+						isFull = false
+						break
+					}
+				} else {
+					isFull = false
+					break
+				}
+			}
+		}
+
+		if isFull {
+
+			removedLines = appendRow(removedLines, g.cell[r])
+
+			g.shiftDownCell(r)
+
+			// score는 삭제된 line 수 가중치를 줘서 계산
+			g.score += (10 * len(removedLines))
+
+		} else {
+
+			// currnet block to board
+			for i := 0; i < BLOCK_COLUMN; i++ {
+				if g.currentBlock.Shape[y][i] != EMPTY {
+					g.cell[r][g.currentBlock.Col+i] = g.currentBlock.ShapeIndex
+				}
+			}
 		}
 	}
 
-	return count
+	return removedLines
 }
 
 func (g *Game) firstNextToCurrnetBlock() {
@@ -226,20 +296,25 @@ func (g *Game) IsGameOver() bool {
 	return g.status == "over-game"
 }
 
-// NextTern : 다음 턴으로 넘어감
-// 리턴값 : 한번에 지운 라인의 수
-// -1 : 게임오버
-func (g *Game) NextTern() int {
-	count := g.removeFullLine()
-
-	g.CreateNextBlock()
+// nextTern : 다음 턴으로 넘어감
+// 삭제된 라인 처리
+// 삭제된 라인이 2줄 이상이면, 경쟁자들에게 선물을 보냄
+// 새 블럭을 생성
+// 새 블럭을 생성하지 못하면, 게임오버
+func (g *Game) nextTern() {
+	removedLines := g.procFullLine()
+	if len(removedLines) > 1 {
+		g.SendGiftFullBlocks(removedLines)
+	}
 
 	if !g.isSafeNewBlock() {
-		return -1
+		g.gameOver()
+		g.SendGameOver()
 	}
 	g.firstNextToCurrnetBlock()
 
-	return count
+	g.CreateNextBlock()
+	g.SendNextBlocks()
 }
 
 func (g *Game) toRotate() bool {
@@ -284,6 +359,11 @@ func (g *Game) toDown() bool {
 }
 
 func (g *Game) toDrop() bool {
+
+	if !g.isSafeToDown() {
+		return false
+	}
+
 	for g.isSafeToDown() {
 		g.currentBlock.Row++
 	}
@@ -309,23 +389,43 @@ func (g *Game) receiveFullBlocks(blocks [][]int) bool {
 	return true
 }
 
-func (g *Game) GameOver() {
-	g.currentBlockToBoard()
+func (g *Game) IsPlaying() bool {
+	return g.status == "playing-game"
+}
+
+func (g *Game) gameOver() {
 	g.status = "over-game"
 }
 
-func (g *Game) Stop() {
-	g.request <- &Message{Action: "over-game"}
+// Action : 게임에 메시지를 전달한다.
+func (g *Game) Action(msg *Message) {
+	g.ch <- msg
 }
 
-func (g *Game) Run() {
+// Stop : 게임을 종료시킨다.
+func (g *Game) Stop() {
+	g.ch <- &Message{Action: "over-game"}
+}
 
+// Start : 게임을 시작한다.
+func (g *Game) Start() {
+
+	if g.IsPlaying() {
+		return
+	}
+
+	g.reset()
 	g.status = "playing-game"
 	g.SendSyncGame()
 
-	for {
+	go g.run()
+}
+
+func (g *Game) run() {
+
+	for !g.IsGameOver() {
 		select {
-		case msg := <-g.request:
+		case msg := <-g.ch:
 			switch msg.Action {
 			case "block-rotate":
 				g.toRotate()
@@ -341,30 +441,29 @@ func (g *Game) Run() {
 
 			case "block-down":
 				if !g.toDown() {
-					if g.NextTern() == -1 {
-						g.GameOver()
-						g.SendGameOver()
-						return
-					}
+					g.nextTern()
 				}
 				g.SendSyncGame()
 
 			case "block-drop":
 				if !g.toDrop() {
-					g.GameOver()
+					g.gameOver()
+					g.currentBlockToBoard()
 					g.SendGameOver()
-					return
 				}
+				g.nextTern()
 				g.SendSyncGame()
 
 			case "over-game":
-				g.GameOver()
+				g.gameOver()
+				g.currentBlockToBoard()
 				g.SendGameOver()
 				return
 
 			case "gift-full-blocks":
 				if !g.receiveFullBlocks(msg.Cells) {
-					g.GameOver()
+					g.gameOver()
+					g.currentBlockToBoard()
 					g.SendGameOver()
 					return
 				}
@@ -373,11 +472,7 @@ func (g *Game) Run() {
 
 		case <-time.After(time.Millisecond * time.Duration(g.cycleMs)):
 			if !g.toDown() {
-				if g.NextTern() == -1 {
-					g.GameOver()
-					g.SendGameOver()
-					return
-				}
+				g.nextTern()
 			}
 			g.SendSyncGame()
 		}

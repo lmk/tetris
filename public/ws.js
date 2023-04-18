@@ -77,6 +77,7 @@ var messageHandler = function(msg) {
 
     case 'start-game':
       window.Game.Init();
+      DrawNextBlocks();
       break;
       
     case 'over-game':

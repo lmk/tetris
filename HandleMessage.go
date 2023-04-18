@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"strconv"
 )
 
@@ -20,99 +19,107 @@ func (wss *WebsocketServer) isVaildNick(roomId int, nick string) bool {
 }
 
 // sendInTheRoom 방에 있는 사용자에게 메시지를 보낸다.
-func (wss *WebsocketServer) sendInTheRoom(roomId int, message *Message) {
+func (wss *WebsocketServer) sendInTheRoom(roomId int, msg *Message) {
 	for _, client := range wss.rooms[roomId] {
-		client.send <- message
+		client.send <- msg
+	}
+}
+
+// sendInTheRoomExceptSender Sender를 제외한 방에 있는 사용자에게 메시지를 보낸다.
+func (wss *WebsocketServer) sendInTheRoomExceptSender(roomId int, msg *Message) {
+	for _, client := range wss.rooms[roomId] {
+		if client.nick != msg.Sender {
+			client.send <- msg
+		}
 	}
 }
 
 // setNick 닉네임을 변경한다.
-func (wss *WebsocketServer) setNick(message *Message) {
+func (wss *WebsocketServer) setNick(msg *Message) {
 	// 기존과 같은 닉네임이면 변경하지 않는다.
-	if message.Sender == message.Data {
+	if msg.Sender == msg.Data {
 		return
 	}
 
 	// nick 중복 체크
 	for _, nicks := range wss.rooms {
 		for nick := range nicks {
-			if nick == message.Data {
-				wss.rooms[message.roomId][message.Sender].send <- &Message{Action: "error", Data: "nick duplicate"}
+			if nick == msg.Data {
+				wss.rooms[msg.roomId][msg.Sender].send <- &Message{Action: "error", Data: "nick duplicate"}
 				return
 			}
 		}
 	}
 
 	// 닉네임 변경
-	client := wss.rooms[message.roomId][message.Sender]
-	client.nick = message.Data
-	wss.rooms[message.roomId][client.nick] = client
-	delete(wss.rooms[message.roomId], message.Sender)
+	client := wss.rooms[msg.roomId][msg.Sender]
+	client.nick = msg.Data
+	wss.rooms[msg.roomId][client.nick] = client
+	delete(wss.rooms[msg.roomId], msg.Sender)
 
 	// 방에 입장한 사용자에게 보내기
-	wss.sendInTheRoom(message.roomId, message)
+	wss.sendInTheRoom(msg.roomId, msg)
 }
 
 // newJoinRoom 방 생성, 입장 처리
-func (wss *WebsocketServer) newJoinRoom(message *Message) {
+func (wss *WebsocketServer) newJoinRoom(msg *Message) {
 	roomId := -1
-	if message.Action == "new-room" {
+	if msg.Action == "new-room" {
 		// 새로운 방을 생성한다.
 		roomId = len(wss.rooms) + 1
 		wss.rooms[roomId] = make(map[string]*Client)
 	} else {
-		roomId, _ = strconv.Atoi(message.Data)
+		roomId, _ = strconv.Atoi(msg.Data)
 	}
 
 	// 방으로 이동
-	client := wss.rooms[WAITITNG_ROOM][message.Sender]
+	client := wss.rooms[WAITITNG_ROOM][msg.Sender]
 	client.roomId = roomId
 
 	// 개임을 생성한다.
-	client.game = NewGame(client)
+	Manager.NewGame(roomId, client)
 
-	// next block indexs를 보낸다.
-	jsonNexts, _ := json.Marshal(client.game.nextBlockIndexs)
-	client.send <- &Message{Action: "next-block", Data: string(jsonNexts)}
-
-	wss.rooms[roomId][message.Sender] = client
+	wss.rooms[roomId][msg.Sender] = client
 
 	// 대기실에서 삭제
-	delete(wss.rooms[WAITITNG_ROOM], message.Sender)
+	delete(wss.rooms[WAITITNG_ROOM], msg.Sender)
 
 	// 방에 입장한 사용자에게 보내기
-	message.Action = "join-room"
-	wss.sendInTheRoom(roomId, message)
+	msg.Action = "join-room"
+	wss.sendInTheRoom(roomId, msg)
 }
 
 // leaveRoom 방 나가기 처리
-func (wss *WebsocketServer) leaveRoom(message *Message) {
-	roomId, _ := strconv.Atoi(message.Data)
+func (wss *WebsocketServer) leaveRoom(msg *Message) {
 
 	// 대기실로 이동
-	client := wss.rooms[roomId][message.Sender]
+	client := wss.rooms[msg.roomId][msg.Sender]
 	client.roomId = WAITITNG_ROOM
-	wss.rooms[WAITITNG_ROOM][message.Sender] = client
+	wss.rooms[WAITITNG_ROOM][msg.Sender] = client
+
+	if client.game.IsPlaying() {
+		client.game.Stop()
+	}
 
 	// 방에서 나가기
-	delete(wss.rooms[roomId], message.Sender)
-	if len(wss.rooms[roomId]) == 0 {
-		delete(wss.rooms, roomId)
+	delete(wss.rooms[msg.roomId], msg.Sender)
+	if len(wss.rooms[msg.roomId]) == 0 {
+		delete(wss.rooms, msg.roomId)
 	} else {
 		// 방에 입장한 사용자에게 보내기
-		message.Action = "leave-room"
+		msg.Action = "leave-room"
 
-		wss.sendInTheRoom(roomId, message)
+		wss.sendInTheRoom(msg.roomId, msg)
 	}
 
 	// 대기실 입장 메시지 보내기
-	message.Action = "join-room"
-	wss.sendInTheRoom(WAITITNG_ROOM, message)
+	msg.Action = "join-room"
+	wss.sendInTheRoom(WAITITNG_ROOM, msg)
 }
 
 // listRoom 방 목록 보기 처리
-func (wss *WebsocketServer) listRoom(message *Message) {
-	message.RoomList = make([]RoomInfo, 0)
+func (wss *WebsocketServer) listRoom(msg *Message) {
+	msg.RoomList = make([]RoomInfo, 0)
 
 	for roomId, members := range wss.rooms {
 
@@ -126,73 +133,61 @@ func (wss *WebsocketServer) listRoom(message *Message) {
 			roomInfo.Nicks = append(roomInfo.Nicks, nick)
 		}
 
-		message.RoomList = append(message.RoomList, roomInfo)
+		msg.RoomList = append(msg.RoomList, roomInfo)
 	}
 
 	// 요청한 사용자에게 보내기
-	wss.rooms[message.roomId][message.Sender].send <- message
+	wss.rooms[msg.roomId][msg.Sender].send <- msg
 }
 
-// // newBlock 블록 생성 처리
-// func (wss *WebsocketServer) newBlock(message *Message) {
-// 	// 생성할 블록의 개수를 가져온다.
-// 	count, _ := strconv.Atoi(message.Msg)
-// 	if count <= 0 {
-// 		Warning.Println("reuqest new-block count is 0")
-// 		return
-// 	}
+func (wss *WebsocketServer) startGame(msg *Message) {
+	for _, client := range wss.rooms[msg.roomId] {
+		client.game.Start()
 
-// 	// 0~7 사이의 난수를 생성한다.
-// 	nums := make([]int, 0)
-// 	for i := 0; i < count; i++ {
-// 		nums = append(nums, rand.Int()%8)
-// 	}
-
-// 	// 방에 입장한 사용자에게 보내기
-// 	message.Action = "new-block"
-// 	message.Msg = strings.Join(strings.Fields(fmt.Sprint(nums)), ",")
-// 	wss.sendInTheRoom(message.roomId, message)
-// }
-
-func (wss *WebsocketServer) game(message *Message) {
-
-	switch message.Action {
-	case "start-game":
-		for _, client := range wss.rooms[message.roomId] {
-			go client.game.Run()
-
-			client.send <- message
-		}
-
-	case "next-block":
-		//
-
-	case "over-game":
-		wss.sendInTheRoom(message.roomId, message)
+		client.send <- msg
 	}
 }
 
-// HandleMessage 메시지 핸들러
-func (wss *WebsocketServer) HandleMessage(message *Message) {
-	Trace.Println("HandleMessage:", message)
+func (wss *WebsocketServer) actionGame(msg *Message) {
+	game := Manager.getGame(msg.Sender)
+	if game == nil {
+		Warning.Println("Unknown player:", msg.Sender)
+		return
+	}
 
-	switch message.Action {
+	game.Action(msg)
+}
+
+// HandleMessage websocket clinet -> server의 메시지를 처리한다.
+func (wss *WebsocketServer) HandleMessage(msg *Message) {
+	Trace.Println("HandleMessage:", msg)
+
+	switch msg.Action {
 	case "set-nick":
-		go wss.setNick(message)
+		wss.setNick(msg)
 
 	case "new-room", "join-room":
-		go wss.newJoinRoom(message)
+		wss.newJoinRoom(msg)
 
 	case "leave-room":
-		go wss.leaveRoom(message)
+		wss.leaveRoom(msg)
 
 	case "list-room":
-		go wss.listRoom(message)
+		wss.listRoom(msg)
 
-	case "start-game", "over-game", "next-block":
-		go wss.game(message)
+	case "over-game", "sync-game":
+		wss.sendInTheRoom(msg.roomId, msg)
+
+	case "gift-full-blocks":
+		wss.sendInTheRoomExceptSender(msg.roomId, msg)
+
+	case "start-game":
+		wss.startGame(msg)
+
+	case "block-drop", "block-rotate", "block-left", "block-right", "block-down":
+		wss.actionGame(msg)
 
 	default:
-		Warning.Println("Unknown Action:", message)
+		Warning.Println("Unknown Action:", msg)
 	}
 }

@@ -48,29 +48,21 @@ type Block struct {
 	ShapeIndex int     `json:"shapeIndex"`
 }
 
-func (b *Block) ShapeFrom(shape [][]int) {
-	b.Shape = make([][]int, BLOCK_ROW)
-	for i := 0; i < BLOCK_ROW; i++ {
-		b.Shape[i] = make([]int, BLOCK_COLUMN)
-		copy(b.Shape[i], shape[i])
-	}
-}
-
-func (b *Block) ShapeTo() [][]int {
-	shape := make([][]int, BLOCK_ROW)
-	for i := 0; i < BLOCK_ROW; i++ {
-		shape[i] = make([]int, BLOCK_COLUMN)
-		copy(shape[i], b.Shape[i])
+func CloneShape(shape [][]int) [][]int {
+	newShape := make([][]int, len(shape))
+	for i, c := range shape {
+		newShape[i] = make([]int, len(c))
+		copy(newShape[i], c)
 	}
 
-	return shape
+	return newShape
 }
 
 func (b *Block) Clone(from Block) {
 	b.Row = from.Row
 	b.Col = from.Col
 	b.ShapeIndex = from.ShapeIndex
-	b.ShapeFrom(from.Shape)
+	b.Shape = CloneShape(from.Shape)
 }
 
 func NewBlock(shapeIndex int) Block {
@@ -86,7 +78,7 @@ func NewBlock(shapeIndex int) Block {
 
 func (b *Block) SetShape(shapeIndex int) {
 	b.ShapeIndex = shapeIndex
-	b.ShapeFrom(SHAPES[shapeIndex-1])
+	b.Shape = CloneShape(SHAPES[shapeIndex-1])
 }
 
 func (b *Block) Rotate() {
@@ -97,5 +89,9 @@ func (b *Block) Rotate() {
 			newShape[i][j] = b.Shape[BLOCK_COLUMN-j-1][i]
 		}
 	}
-	b.ShapeFrom(newShape)
+	b.Shape = CloneShape(newShape)
+}
+
+func (b *Block) inBlock(row, col int) bool {
+	return b.Row <= row && row < b.Row+BLOCK_ROW && b.Col <= col && col < b.Col+BLOCK_COLUMN
 }

@@ -612,42 +612,30 @@ function CreateGame() {
 
     $(document).keydown(function(e)
     {
-        try
+        if(e.keyCode == 32) //space
         {
-            if(e.keyCode == 32) //space
-            {
-                if (window.Game.myBoard.MoveBottomBlock() == false) {
-                    send("over-game", "to-bottom")
-                }
-                e.preventDefault();
-            }
-            if (e.keyCode == 38) //up
-            {
-                window.Game.myBoard.RotateBlock();
-                e.preventDefault();
-            }
-            if (e.keyCode == 37) //left
-            {
-                window.Game.myBoard.MoveLeftBlock();
-                e.preventDefault();
-            }
-            if(e.keyCode == 39) //Right
-            {
-                window.Game.myBoard.MoveRightBlock();
-                e.preventDefault();
-            }
-            if(e.keyCode == 40) //Down
-            {
-                if (window.Game.myBoard.MoveDownBlock() == false) {
-                    send("over-game", "to-down")
-                }
-                e.preventDefault();
-            }
+            send("block-drop", "")
+            e.preventDefault();
         }
-        catch(e)
+        if (e.keyCode == 38) //up
         {
-            print(e);
-            send("over-game", "error: " + e)
+            send("block-rotate", "")
+            e.preventDefault();
+        }
+        if (e.keyCode == 37) //left
+        {
+            send("block-left", "")
+            e.preventDefault();
+        }
+        if(e.keyCode == 39) //Right
+        {
+            send("block-right", "")
+            e.preventDefault();
+        }
+        if(e.keyCode == 40) //Down
+        {
+            send("block-down", "")
+            e.preventDefault();
         }
     });
 }
@@ -711,9 +699,10 @@ function inRect(row, col, block) {
 }
 
 
-function DrawBoard (block)
+function DrawBoard (cells, block)
 {
     let board = window.Game.myBoard;
+    board.cells = cells;
 
     let html ="";
     for(let r=0;r<window.Game.row;r++)
