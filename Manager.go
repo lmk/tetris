@@ -1,9 +1,5 @@
 package main
 
-import (
-	"encoding/json"
-)
-
 type Player struct {
 	RoomId int
 	Client *Client
@@ -46,10 +42,6 @@ func (gm *manager) NewGame(roomId int, client *Client) *Game {
 
 	gm.players[client.nick] = player
 
-	// send next block indexs to client
-	jsonNexts, _ := json.Marshal(game.nextBlockIndexs)
-	client.send <- &Message{Action: "next-block", Data: string(jsonNexts)}
-
 	return game
 }
 
@@ -62,7 +54,16 @@ func (gm *manager) run() {
 	}
 }
 
-func (gm *manager) gameOver(msg *Message) {
+func (gm *manager) startGame(msg *Message) {
+	if player, ok := gm.players[msg.Sender]; ok {
+		msg.roomId = player.RoomId
+		player.Client.send <- msg
+	} else {
+		Warning.Println("Unknown player:", msg)
+	}
+}
+
+func (gm *manager) overGame(msg *Message) {
 	if player, ok := gm.players[msg.Sender]; ok {
 		msg.roomId = player.RoomId
 		player.Client.ws.broadcast <- msg
@@ -89,15 +90,6 @@ func (gm *manager) giftFullBlocks(msg *Message) {
 	}
 }
 
-func (gm *manager) nextBlock(msg *Message) {
-	if player, ok := gm.players[msg.Sender]; ok {
-		msg.roomId = player.RoomId
-		player.Client.send <- msg
-	} else {
-		Warning.Println("Unknown player:", msg)
-	}
-}
-
 func (gm *manager) getGame(nick string) *Game {
 	if player, ok := gm.players[nick]; ok {
 		return player.Client.game
@@ -109,8 +101,11 @@ func (gm *manager) getGame(nick string) *Game {
 // Game 에서 발생한 이벤트 처리
 func (gm *manager) handleMessage(msg *Message) {
 	switch msg.Action {
+	case "start-game":
+		gm.startGame(msg)
+
 	case "over-game":
-		gm.gameOver(msg)
+		gm.overGame(msg)
 
 	case "sync-game":
 		gm.syncGame(msg)
@@ -118,10 +113,7 @@ func (gm *manager) handleMessage(msg *Message) {
 	case "gift-full-blocks":
 		gm.giftFullBlocks(msg)
 
-	case "next-block":
-		gm.nextBlock(msg)
-
 	default:
-		Warning.Println("Unknown action:", msg)
+		Error.Fatalln("Unknown action:", msg)
 	}
 }

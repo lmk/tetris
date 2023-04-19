@@ -77,13 +77,24 @@ var messageHandler = function(msg) {
     case 'start-game':
       window.Game.Init();
       window.Game.Start(msg.sender);
+
+      window.Game.myBoard.cells = msg.cells;
+      DrawBoard(msg.cells, msg.block);            
+
+      window.Game.myBoard.SetNextBlock(msg.nextBlocks);
       DrawNextBlocks();
       break;
       
     case 'over-game':
       if (msg.sender == $('#nick').val() && window.Game.myBoard.IsPlaying()) {
+
+        window.Game.myBoard.cells = msg.cells;
+        DrawBoard(msg.cells, msg.block);        
+
         window.Game.GameOver(msg.sender);
+
         alert("Game over, please refresh the page to start new game");
+
         createStartButton();
       } else {
         window.Game.GameOver(msg.sender);
@@ -92,16 +103,16 @@ var messageHandler = function(msg) {
 
     case 'sync-game':
       if (msg.sender == $('#nick').val()) {
-        $('#score').text(msg.score);
-        window.Game.myBoard.cells = msg.cells;
-        DrawBoard(msg.cells, msg.block);
-      }
-      break;
 
-    case 'next-block':
-      window.Game.myBoard.SetNextBlock(JSON.parse(msg.data));
-      if (window.Game.myBoard.IsPlaying()) {
+        window.Game.myBoard.SetNextBlock(msg.nextBlocks);
         DrawNextBlocks();
+        
+        $('#score').text(msg.score);
+
+        if (window.Game.myBoard.IsPlaying()) {
+          window.Game.myBoard.cells = msg.cells;
+          DrawBoard(msg.cells, msg.block);
+        }
       }
       break;
 

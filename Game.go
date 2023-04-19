@@ -301,7 +301,7 @@ func (g *Game) IsGameOver() bool {
 // 삭제된 라인이 2줄 이상이면, 경쟁자들에게 선물을 보냄
 // 새 블럭을 생성
 // 새 블럭을 생성하지 못하면, 게임오버
-func (g *Game) nextTern() {
+func (g *Game) nextTern() bool {
 	removedLines := g.procFullLine()
 	if len(removedLines) > 1 {
 		g.SendGiftFullBlocks(removedLines)
@@ -310,11 +310,12 @@ func (g *Game) nextTern() {
 	if !g.isSafeNewBlock() {
 		g.gameOver()
 		g.SendGameOver()
+		return false
 	}
 	g.firstNextToCurrnetBlock()
 
 	g.CreateNextBlock()
-	g.SendNextBlocks()
+	return true
 }
 
 func (g *Game) toRotate() bool {
@@ -416,7 +417,7 @@ func (g *Game) Start() {
 
 	g.reset()
 	g.status = "playing-game"
-	g.SendSyncGame()
+	g.SendStartGame()
 
 	go g.run()
 }
@@ -441,7 +442,9 @@ func (g *Game) run() {
 
 			case "block-down":
 				if !g.toDown() {
-					g.nextTern()
+					if !g.nextTern() {
+						return
+					}
 				}
 				g.SendSyncGame()
 
@@ -451,7 +454,9 @@ func (g *Game) run() {
 					g.currentBlockToBoard()
 					g.SendGameOver()
 				}
-				g.nextTern()
+				if !g.nextTern() {
+					return
+				}
 				g.SendSyncGame()
 
 			case "over-game":
@@ -471,8 +476,8 @@ func (g *Game) run() {
 			}
 
 		case <-time.After(time.Millisecond * time.Duration(g.cycleMs)):
-			if !g.toDown() {
-				g.nextTern()
+			if !g.toDown() && !g.nextTern() {
+				return
 			}
 			g.SendSyncGame()
 		}

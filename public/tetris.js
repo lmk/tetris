@@ -142,6 +142,8 @@ class Board {
         this.scoreID = scoreID;
         this.nextBlockID = nextBlockID;
 
+        this.nextBlocks = [];
+
         for(let row=0;row< window.Game.row;row++)
         {
             let rowObject =[];

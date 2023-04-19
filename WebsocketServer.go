@@ -51,7 +51,10 @@ func (wss *WebsocketServer) Run() {
 
 		select {
 
-		case client := <-wss.register:
+		case client, ok := <-wss.register:
+			if !ok {
+				Warning.Panicln("Websocket Server is closed")
+			}
 			connections := wss.rooms[client.roomId]
 			if connections == nil {
 				connections = make(map[string]*Client)
@@ -88,6 +91,8 @@ func (wss *WebsocketServer) Run() {
 }
 
 func serveWs(ctx *gin.Context, roomId int, wsServer *WebsocketServer) {
+
+	Info.Println("serveWs", roomId)
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {

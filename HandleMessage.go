@@ -143,8 +143,6 @@ func (wss *WebsocketServer) listRoom(msg *Message) {
 func (wss *WebsocketServer) startGame(msg *Message) {
 	for _, client := range wss.rooms[msg.roomId] {
 		client.game.Start()
-
-		client.send <- msg
 	}
 }
 
