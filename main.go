@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-contrib/static"
@@ -30,19 +29,19 @@ func runServer() {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
-	// websocker 통신을 위한 라우팅을 추가한다.
-	r.GET("/ws/:room", func(c *gin.Context) {
-		//string to int
-		roomId, err := strconv.Atoi(c.Param("room"))
-		if err != nil {
-			Error.Println("Invaild URI", err)
-		} else {
-			serveWs(c, roomId, wsServer)
-		}
-	})
+	// // websocker 통신을 위한 라우팅을 추가한다.
+	// r.GET("/ws/:room", func(c *gin.Context) {
+	// 	//string to int
+	// 	roomId, err := strconv.Atoi(c.Param("room"))
+	// 	if err != nil {
+	// 		Error.Println("Invaild URI", err)
+	// 	} else {
+	// 		serveWs(c, roomId, wsServer)
+	// 	}
+	// })
 
-	r.GET("/ws/list", func(c *gin.Context) {
-		serveWs(c, 0, wsServer)
+	r.GET("/ws", func(c *gin.Context) {
+		serveWs(c, WAITITNG_ROOM, wsServer)
 	})
 
 	r.Run(":8080")

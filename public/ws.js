@@ -10,7 +10,7 @@ var print = function(message) {
 var send = function(action, msg) {
   let data = {
     action: action,
-    sender: $('#nick').val(),
+    sender: $('#my-nick').text(),
     data: msg
   };
 
@@ -44,12 +44,29 @@ var messageHandler = function(msg) {
       break;
 
     case 'list-room':
-      if (msg.roomList != null) {
-        $('#roomList').text("")
-        for (var i = 0; i < msg.roomList.length; i++) {
-          var room = msg.roomList[i];
-          $('#roomList').append('<div class="room" id="'+room.RoomId+'">' + room.RoomId + '<button class="joinButton">JOIN</button></div>');
+      $('#roomList').text("");
+      let roomCount = 0;
+
+      for (let i = 0; i < msg.roomList.length; i++) {
+        let room = msg.roomList[i];
+
+        if (room.roomId == 0) {
+          continue;
         }
+
+        let html = '<div class="room" id="'+room.roomId+'"><div class="roomId">'+room.roomId+'</div>'
+                    + '<div class="roomTitle">'+room.title+'</div>'
+                    + '<div class="roomUsers">'+Object.keys(room.nicks)+'</div>'
+                    + '<button class="joinButton">JOIN</button></div>';
+        $('#roomList').append(html);
+        roomCount++;
+      }
+
+      if (roomCount > 0) {
+        // joinButton 을 클릭하면 방에 입장한다.
+        $('.joinButton').click(function() {
+          send('join-room', $(this).parent().attr('id'))
+        });
       } else {
         $('#roomList').html('<div class="no-room">' + 'No room' + '</div>')
       }
@@ -59,18 +76,40 @@ var messageHandler = function(msg) {
       break;
 
     case 'join-room':
-      if (msg.sender == $('#nick').val()) {
+      if (msg.sender == $('#my-nick').text()) {
+        // 방에 입장하면, 게임 화면으로 이동한다.
         $('#room').hide();
         $('#game').show();
-        createStartButton();
+        $('#roomId').text(msg.roomId);        
+        $('#roomTitle').text(msg.roomList[0].title);
+        if (msg.roomList[0].owner == $('#my-nick').text()) {
+          createStartButton();
+        }
+      }
+
+      for (let nick of Object.keys(msg.roomList[0].nicks)) {
+        let el = $('#enermy-game-'+nick);
+        if ($('#my-nick').text() != nick && el != undefined) {
+          let html = '<div id="enermy-game-'+nick+'" class="col-sm-1">'
+              + '<div id="enermy-name">'+nick+'</div>'
+              + '<div id="enermy-score-'+nick+'">0</div>'
+              + '<div id="enermy-board-'+nick+'"></div></div>';
+          $('#game').append(html)
+
+          window.Game.enermyBoards.set(nick, new Board());
+          window.Game.enermyBoards.get(nick).InitEnermy("#enermy-board-"+nick, "#enermy-score-"+nick);
+          window.Game.enermyBoards.get(nick).owner = nick;
+        }
       }
       break;
 
     case 'leave-room':
-      if (msg.sender == $('#nick').val()) {
+      if (msg.sender == $('#my-nick').text()) {
         $('#game').hide();
         $('#room').show();
         send('list-room', "") 
+      } else {
+        $('#enermy-game-'+msg.sender).remove();
       }
       break;
 
@@ -86,7 +125,8 @@ var messageHandler = function(msg) {
       break;
       
     case 'over-game':
-      if (msg.sender == $('#nick').val() && window.Game.myBoard.IsPlaying()) {
+    case 'end-game':
+      if (msg.sender == $('#my-nick').text() && window.Game.myBoard.IsPlaying()) {
 
         window.Game.myBoard.cells = msg.cells;
         DrawBoard(msg.cells, msg.block);        
@@ -99,21 +139,31 @@ var messageHandler = function(msg) {
       } else {
         window.Game.GameOver(msg.sender);
       }
+
+      if (msg.action == 'end-game') {
+        alert("Congratulations!! "+msg.sender+" has in the top "+ msg.Data +" with " + msg.score + " score");
+      }
       break;
 
     case 'sync-game':
-      if (msg.sender == $('#nick').val()) {
+      if (msg.sender == $('#my-nick').text()) {
 
         window.Game.myBoard.SetNextBlock(msg.nextBlocks);
         DrawNextBlocks();
-        
+
         $('#score').text(msg.score);
 
         if (window.Game.myBoard.IsPlaying()) {
           window.Game.myBoard.cells = msg.cells;
           DrawBoard(msg.cells, msg.block);
         }
+      } else {
+        $('#enermy-score-'+msg.sender).text(msg.score);
+        if (window.Game.enermyBoards.has(msg.sender)) {
+          DrawEnermyBoard(msg.sender, msg.cells, msg.block);
+        }
       }
+
       break;
 
     default:
@@ -125,19 +175,14 @@ var messageHandler = function(msg) {
 // 화면 로딩
 window.onload = function() {
 
-  // myNick 생성
-  // let myNick = 'user' + Math.floor(Math.random() * 1000);
-  // $('#nick').val(myNick);
-
   if (window.Game == undefined) {
     CreateGame();
   }  
 
   // websocket 연결
-  ws = new WebSocket("ws://localhost:8080/ws/list");
+  ws = new WebSocket("ws://localhost:8080/ws");
   ws.onopen = function(evt) {
     print("OPEN");
-
   }
 
   ws.onclose = function(evt) {
@@ -164,11 +209,6 @@ window.onload = function() {
     send('set-nick', $('#newNick').val())
   });
 
-  // joinButton 을 클릭하면 방에 입장한다.
-  $('.joinButton').click(function() {
-    var roomName = $(this).parent().attr('id');
-    send('join-room', roomName)
-  });
 
 }
 

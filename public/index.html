@@ -14,41 +14,32 @@
 </head>
 <body>
 	<h1>War Tetris</h1>
-  <div id="game" class="row">
-    <div id="my-game" class="col-md-4">
+  <div id="game" class="row container">
+    <span id="roomId" class="roomId"></span>
+    <span id="roomTitle" class="roomTitle"></span>
+    <div id="my-game" class="">
       <div id="my-info">
-        <div id="score">
-          <h4>my score</h4>
-          <div id="my-score"></div>
-        </div>
-        <div id="next" class="row">
-          <h4>next blocks</h4>
-          <div id="my-nextBlock0" class="col-md-auto"></div>
-          <div id="my-nextBlock1" class="col-md-auto"></div>
-          <div id="my-nextBlock2" class="col-md-auto"></div>
+        <span id="my-nick"></span>
+        <span id="score">
+          my score: <span id="my-score"></span>
+        </span>
+        <div id="next" class="">
+          <h6>next blocks</h6>
+          <span id="my-nextBlock0" class="nextBlock col-sm-1"></span>
+          <span id="my-nextBlock1" class="nextBlock col-sm-1"></span>
+          <span id="my-nextBlock2" class="nextBlock col-sm-1"></span>
         </div>
       </div>
-      <div id="my-game-board">
-        <h4>my board</h4>
+      <div id="my-game-board" class="col-sm-4">
         <div id="my-board"></div>
-      </div>
-    </div>
-    <div id="enemy1-game" class="col-md-auto">
-      <div id="enemy-name"></div>
-      <div id="enemy-score">
-        <div id="enemy1-score"></div>
-      </div>
-      <div id="enemy-board">
-        <div id="enemy1-board"></div>
       </div>
     </div>
   </div>
   <div id="room">
     <h3>room list</h3>
     <div id="my">
-      <input type="hidden" id="nick" />
       <input type="text" id="newNick" placeholder="input your nick name" />
-      <button id="setNick">set nick name</button>
+      <button id="setNick">change nick name</button>
       <button id="newGame">new game</button>
     </div>
     <div id="roomList">

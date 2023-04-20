@@ -58,14 +58,14 @@ func CloneShape(shape [][]int) [][]int {
 	return newShape
 }
 
-func (b *Block) Clone(from Block) {
+func (b *Block) Clone(from *Block) {
 	b.Row = from.Row
 	b.Col = from.Col
 	b.ShapeIndex = from.ShapeIndex
 	b.Shape = CloneShape(from.Shape)
 }
 
-func NewBlock(shapeIndex int) Block {
+func NewBlock(shapeIndex int) *Block {
 	block := Block{
 		Row:        0,
 		Col:        BOARD_CENTER,
@@ -73,7 +73,7 @@ func NewBlock(shapeIndex int) Block {
 	}
 	block.SetShape(shapeIndex)
 
-	return block
+	return &block
 }
 
 func (b *Block) SetShape(shapeIndex int) {

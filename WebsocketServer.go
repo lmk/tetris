@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,7 +18,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type WebsocketServer struct {
-	rooms      map[int]map[string]*Client // clients list (roomId, nick, client)
+	rooms      map[int]*RoomInfo // roomId, roomInfo
 	broadcast  chan *Message
 	register   chan *Client
 	unregister chan *Client
@@ -27,20 +28,33 @@ func NewWebsocketServer() *WebsocketServer {
 
 	// 웹 소켓 서버를 생성한다.
 	return &WebsocketServer{
-		rooms:      make(map[int]map[string]*Client),
+		rooms:      make(map[int]*RoomInfo),
 		broadcast:  make(chan *Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
 }
 
+func (wss *WebsocketServer) getFreeRoomID() int {
+
+	for i := 1; i < 100; i++ {
+		if _, ok := wss.rooms[i]; !ok {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func (wss *WebsocketServer) report() {
 
-	Info.Println("Websocket Server Report")
+	report := "REPORT:"
 
-	for roomId, clients := range wss.rooms {
-		Info.Printf("[%v: %v],", roomId, len(clients))
+	for roomId, info := range wss.rooms {
+		report += fmt.Sprintf("[%v:%d],", roomId, len(info.Clients))
 	}
+
+	Info.Println(report)
 }
 
 func (wss *WebsocketServer) Run() {
@@ -51,35 +65,36 @@ func (wss *WebsocketServer) Run() {
 
 		select {
 
-		case client, ok := <-wss.register:
-			if !ok {
-				Warning.Panicln("Websocket Server is closed")
+		case client := <-wss.register:
+			room := wss.rooms[WAITITNG_ROOM]
+			if room == nil {
+				wss.rooms[WAITITNG_ROOM] = NewRoomInfo(WAITITNG_ROOM, client, "no title")
+			} else {
+				room.Clients[client.Nick] = client
 			}
-			connections := wss.rooms[client.roomId]
-			if connections == nil {
-				connections = make(map[string]*Client)
-				wss.rooms[client.roomId] = connections
-			}
-			wss.rooms[client.roomId][client.nick] = client
+
+			Manager.Register(WAITITNG_ROOM, client)
 
 			// send random client nick to client
-			client.send <- &Message{Action: "new-nick", Data: client.nick}
-			Info.Printf("\t register %v:%v, %v", client.roomId, client.nick, len(wss.rooms[client.roomId]))
+			client.send <- &Message{Action: "new-nick", Data: client.Nick}
+
+			Info.Println("\t register ", client.Nick, client.socket.RemoteAddr().String())
 
 		case client := <-wss.unregister:
-			if _, ok := wss.rooms[client.roomId]; ok {
-				delete(wss.rooms[client.roomId], client.nick)
-				if client.roomId != WAITITNG_ROOM && len(wss.rooms[client.roomId]) == 0 {
-					delete(wss.rooms, client.roomId)
-				}
+			roomId := Manager.getRoomId(client.Nick)
+			if roomId == -1 {
+				Error.Println("unregister error: unknown user ", client.Nick, client.socket.RemoteAddr().String())
 				close(client.send)
+				continue
 			}
 
-			if client.game != nil && !client.game.IsGameOver() {
-				client.game.Stop()
-			}
+			Manager.Unregister(client)
 
-			Info.Printf("\t unregister %v:%v, %v", client.roomId, client.nick, len(wss.rooms[client.roomId]))
+			wss.OutRoom(roomId, client.Nick)
+
+			close(client.send)
+
+			Info.Printf("\t unregister %v:%v, %v", roomId, client.Nick, client.socket.RemoteAddr().String())
 
 		case message := <-wss.broadcast:
 			wss.HandleMessage(message)
@@ -98,7 +113,8 @@ func serveWs(ctx *gin.Context, roomId int, wsServer *WebsocketServer) {
 	if err != nil {
 		Error.Fatalln(err)
 	}
-	client := NewClient(roomId, conn, wsServer)
+
+	client := NewClient(conn, wsServer)
 
 	wsServer.register <- client
 

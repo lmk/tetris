@@ -1,21 +1,60 @@
-div
-{
-    border: 1px dotted gray;
-}
-
 .game
 {
-    width:100%;
-    height:100%;
+    width:95%;
+    height:95%;
     background-color:#f5f5f5;
     overflow:auto;
 }
 
+.my-board
+{
+    border:1px solid lightgray;
+}
+
 .block
 {
-    width:25px;
-    height:25px;
+    width:25px !important;
+    height:25px !important;
+    border:1px solid white !important;
+}
+
+.cell
+{
+    width:25px !important;
+    height:25px !important;
+    background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
+    background: lightgrey;
+}
+
+.preview-block
+{
+    width:10px !important;
+    height:10px !important;
     border:1px solid white;
+}
+
+.preview-cell
+{
+    width:10px !important;
+    height:10px !important;
+    background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
+    background:lightgrey;
+}
+
+
+.enermy-block
+{
+    width:10px !important; 
+    height:10px !important;
+    border:1px solid white !important;
+} 
+
+.enermy-cell
+{
+    width:10px !important; 
+    height:10px !important; 
+    background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
+    background: lightgrey;
 }
 
 /* .block0
@@ -56,29 +95,6 @@ div
 .block7
 {
     background:linear-gradient(to bottom,#eba8f1,#e181e4) !important;
-}
-
-.cell
-{
-    width:25px;
-    height:25px;
-    background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
-    background: lightgrey;
-}
-
-.preview-block
-{
-    width:10px;
-    height:10px;
-    border:1px solid white;
-}
-
-.preview-cell
-{
-    width:10px;
-    height:10px;
-    background:linear-gradient(to bottom,#A8CFF1,#81B6E4);
-    background:lightgrey;
 }
 
 .bingo

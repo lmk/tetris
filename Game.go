@@ -20,11 +20,10 @@ type Game struct {
 	owner           string        // owner of game
 	ch              chan *Message // request from manager
 	managerCh       chan *Message // response to manager
-	Id              int           // game id
-	status          string        // ready-game, playing-game, over-game
+	status          string        // ready, playing, over
 	cell            [][]int       // 0: empty, other: block index
 	score           int
-	currentBlock    Block
+	currentBlock    *Block
 	nextBlockIndexs []int // next block indexs 10
 	cycleMs         int   // cycle time in ms
 }
@@ -32,13 +31,12 @@ type Game struct {
 // NewGame create a new game
 // ch: request channel
 // id: game id
-func NewGame(ch chan *Message, id int, owner string) *Game {
+func NewGame(ch chan *Message, owner string) *Game {
 	game := Game{
 		owner:        owner,
 		ch:           make(chan *Message),
 		managerCh:    ch,
-		Id:           id,
-		status:       "ready-game",
+		status:       "ready",
 		score:        0,
 		currentBlock: NewBlock((rand.Intn(len(SHAPES)) + 1)),
 		cycleMs:      1000,
@@ -271,7 +269,7 @@ func (g *Game) procFullLine() [][]int {
 			g.shiftDownCell(r)
 
 			// score는 삭제된 line 수 가중치를 줘서 계산
-			g.score += (10 * len(removedLines))
+			g.AddScore(10 * len(removedLines))
 
 		} else {
 
@@ -287,13 +285,21 @@ func (g *Game) procFullLine() [][]int {
 	return removedLines
 }
 
+func (g *Game) AddScore(score int) {
+	g.score += score
+}
+
 func (g *Game) firstNextToCurrnetBlock() {
 	g.currentBlock = NewBlock(g.nextBlockIndexs[0])
 	g.nextBlockIndexs = g.nextBlockIndexs[1:]
 }
 
 func (g *Game) IsGameOver() bool {
-	return g.status == "over-game"
+	return g.status == "over"
+}
+
+func (g *Game) IsPlaying() bool {
+	return g.status == "playing"
 }
 
 // nextTern : 다음 턴으로 넘어감
@@ -390,12 +396,8 @@ func (g *Game) receiveFullBlocks(blocks [][]int) bool {
 	return true
 }
 
-func (g *Game) IsPlaying() bool {
-	return g.status == "playing-game"
-}
-
 func (g *Game) gameOver() {
-	g.status = "over-game"
+	g.status = "over"
 }
 
 // Action : 게임에 메시지를 전달한다.
@@ -405,7 +407,9 @@ func (g *Game) Action(msg *Message) {
 
 // Stop : 게임을 종료시킨다.
 func (g *Game) Stop() {
-	g.ch <- &Message{Action: "over-game"}
+	g.gameOver()
+	g.currentBlockToBoard()
+	//	g.SendGameOver()
 }
 
 // Start : 게임을 시작한다.
@@ -416,7 +420,7 @@ func (g *Game) Start() {
 	}
 
 	g.reset()
-	g.status = "playing-game"
+	g.status = "playing"
 	g.SendStartGame()
 
 	go g.run()
@@ -459,12 +463,6 @@ func (g *Game) run() {
 				}
 				g.SendSyncGame()
 
-			case "over-game":
-				g.gameOver()
-				g.currentBlockToBoard()
-				g.SendGameOver()
-				return
-
 			case "gift-full-blocks":
 				if !g.receiveFullBlocks(msg.Cells) {
 					g.gameOver()
@@ -481,5 +479,49 @@ func (g *Game) run() {
 			}
 			g.SendSyncGame()
 		}
+	}
+
+	Info.Println("run game over")
+}
+
+func (g *Game) SendGameOver() {
+
+	g.managerCh <- &Message{
+		Action:       "over-game",
+		Sender:       g.owner,
+		Cells:        g.cell,
+		CurrentBlock: g.currentBlock,
+		Score:        g.score,
+	}
+}
+
+func (g *Game) SendStartGame() {
+
+	g.managerCh <- &Message{
+		Action:          "start-game",
+		Sender:          g.owner,
+		NextBlockIndexs: g.nextBlockIndexs,
+		Cells:           g.cell,
+		CurrentBlock:    g.currentBlock,
+	}
+}
+
+func (g *Game) SendSyncGame() {
+	g.managerCh <- &Message{
+		Action:          "sync-game",
+		Sender:          g.owner,
+		NextBlockIndexs: g.nextBlockIndexs,
+		Cells:           g.cell,
+		CurrentBlock:    g.currentBlock,
+		Score:           g.score,
+	}
+}
+
+func (g *Game) SendGiftFullBlocks(gift [][]int) {
+
+	g.managerCh <- &Message{
+		Action: "gift-full-blocks",
+		Sender: g.owner,
+		Cells:  gift,
 	}
 }

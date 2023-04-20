@@ -9,20 +9,18 @@ import (
 )
 
 type Client struct {
-	roomId int
-	nick   string
-	socket *websocket.Conn
-	send   chan *Message // to websocket client
-	ws     *WebsocketServer
-	game   *Game
+	Nick   string           `json:"-"`
+	socket *websocket.Conn  `json:"-"`
+	send   chan *Message    `json:"-"` // to websocket client
+	ws     *WebsocketServer `json:"-"`
+	game   *Game            `json:"-"`
 }
 
-func NewClient(roomId int, conn *websocket.Conn, ws *WebsocketServer) *Client {
+func NewClient(conn *websocket.Conn, ws *WebsocketServer) *Client {
 
 	// 웹 소켓 클라이언트를 생성한다.
 	return &Client{
-		roomId: roomId,
-		nick:   getRandomNick(),
+		Nick:   getRandomNick(),
 		socket: conn,
 		ws:     ws,
 		send:   make(chan *Message),
@@ -61,15 +59,15 @@ func (client *Client) Read() {
 			break
 		}
 
-		msg.roomId = client.roomId
+		msg.RoomId = Manager.getRoomId(msg.Sender)
 
-		if !client.ws.isVaildRoomId(msg.roomId) || !client.ws.isVaildNick(msg.roomId, msg.Sender) {
-			Warning.Println("Invalid RoomId or Nick:", msg)
+		if !client.ws.isVaildRoomId(msg.RoomId) || !client.ws.isVaildNick(msg.RoomId, msg.Sender) {
+			Error.Println("Invalid RoomId or Nick:", msg, client.socket.RemoteAddr().String())
 			client.send <- &Message{Action: "error", Data: "Invalid RoomId or Nick"}
 			break
 		}
 
-		Info.Printf("[READ] %v", msg)
+		//Info.Printf("[READ] %v", msg)
 
 		client.ws.broadcast <- &msg
 	}
@@ -83,16 +81,16 @@ func (client *Client) Write() {
 
 	for {
 		message, ok := <-client.send
-		Info.Printf("[WRITE] %v %v", ok, message)
+		//Info.Printf("[WRITE] %v %v", ok, message)
 		if !ok {
 			// The ws closed the channel.
 			client.socket.WriteMessage(websocket.CloseMessage, []byte{})
-			return
+			break
 		} else {
 			err := client.socket.WriteJSON(message)
 			if err != nil {
 				Error.Println("Write Error:", err)
-				return
+				break
 			}
 		}
 	}

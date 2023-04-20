@@ -72,7 +72,7 @@ class Game {
 
     SetOwner(owner) {
         this.myBoard.owner = owner;
-        $('#nick').val(owner);
+        $('#my-nick').text(owner);
         $('#newNick').val(owner);        
     }    
 
@@ -108,16 +108,18 @@ class Board {
     owner = "";
     state = "";
 
+    isEermy = false;
+
     Start() {
-        this.state = 'start-game'
+        this.state = 'playing'
     }    
 
     GameOver() {
-        this.state = 'game-over';
+        this.state = 'over';
     }
 
     IsPlaying() {
-        return this.state == 'start-game'
+        return this.state == 'playing'
     }    
 
     SetNextBlock(blocks) {
@@ -136,6 +138,7 @@ class Board {
         this.drawBoard();
     }
 
+    // for me
     Init(boardID, scoreID, nextBlockID) {
 
         this.boardID = boardID;
@@ -160,37 +163,76 @@ class Board {
         this.score = 0;
         $(scoreID).text(this.score);
 
-        this.state = 'ready-game';        
+        this.state = 'ready';        
     }
+
+    // for enermy
+    InitEnermy(boardID, scoreID) {
+
+        this.boardID = boardID;
+        this.scoreID = scoreID;
+        this.isEermy = true;
+
+        this.nextBlocks = [];
+
+        for(let row=0;row< window.Game.row;row++)
+        {
+            let rowObject =[];
+
+            for(let column=0; column< window.Game.column;column++)
+            {
+                rowObject[column] = window.Game.EMPTY ;// 0 mean empty cell, 1 mean cell occupy a block
+            }
+            this.cells[row] = rowObject;
+        }
+
+        this.initBoard();
+
+        this.score = 0;
+        $(scoreID).text(this.score);
+
+        this.state = 'ready';        
+    }
+
 
     
     initBoard ()
     {
         let html ="";
+
+        let cl = "cell";
+        if (this.isEermy) {
+            cl = "enermy-cell";
+        }
+
+        // board
         for(let i=0;i<window.Game.row;i++)
         {
             html+="<tr>";
             for(let j=0;j<window.Game.column;j++)
             {
-                html+="<td id='r"+i+"c"+j+"' class='cell'></td>";
+                html+="<td id='r"+i+"c"+j+"' class='"+cl+"'></td>";
             }
             html+="</tr>";
         }
         $(this.boardID).html(html);
 
-        html="";
-        for(let i=0;i<4;i++)
-        {
-            html+="<tr>";
-            for(let j=0;j<4;j++)
-            {
-                html+="<td id='pr"+i+"pc"+j+"' class='preview-cell'></td>";
+        // next block
+        if (!this.isEermy) {
+            for (let i = 0; i < 3; i++) {
+                html="";
+                for(let r=0;r<4;r++)
+                {
+                    html+="<tr>";
+                    for(let c=0;c<4;c++)
+                    {
+                        html+="<td id='p"+i+"r"+r+"c"+c+"' class='preview-cell'></td>";
+                    }
+                    html+="</tr>";
+                }
+                $(this.nextBlockID + i).html(html);
             }
-            html+="</tr>";
         }
-        $(this.nextBlockID + "0").html(html);
-        $(this.nextBlockID + "1").html(html);
-        $(this.nextBlockID + "2").html(html);
     }
 
 }
@@ -247,12 +289,15 @@ function CreateGame() {
     });
 }
 
-function DrawNextBlock(id, block) {
+function DrawNextBlock(id, i, block) {
+
+    id = id + i;
+
     for(let r=0; r<4; r++)
     {
         for(let c=0; c<4; c++)
         {
-            let obj = $(id).find("#pr"+r+"pc"+c);
+            let obj = $(id).find("#p"+i+"r"+r+"c"+c);
 
             if(block.Shape[r][c] != window.Game.EMPTY)
             {
@@ -298,9 +343,37 @@ function DrawBoard (cells, block)
     $(board.boardID).html(html);
 }
 
+function DrawEnermyBoard (nick, cells, block)
+{
+    let board = window.Game.enermyBoards.get(nick);
+    board.cells = cells;
+
+    let html ="";
+    for(let r=0;r<window.Game.row;r++)
+    {
+        html+="<tr>";
+        for(let c=0;c<window.Game.column;c++)
+        {
+            let cl = "enermy-cell";
+            if (board.cells[r][c] != window.Game.EMPTY) 
+            {
+                cl += " enermy-block block"+board.cells[r][c]
+            } 
+            if (inRect(r,c,block) && block.shape[r-block.row][c-block.col] != window.Game.EMPTY) {
+                cl += " enermy-block block" + block.shapeIndex
+            } 
+
+            html+="<td id='r"+r+"c"+c+"' class='"+cl+"'></td>";
+        }
+        html+="</tr>";
+    }
+    $(board.boardID).html(html);
+}
+
+
 function DrawNextBlocks() {
     let board = window.Game.myBoard;
-    DrawNextBlock(board.nextBlockID + "0", board.nextBlocks[0]);
-    DrawNextBlock(board.nextBlockID + "1", board.nextBlocks[1]);
-    DrawNextBlock(board.nextBlockID + "2", board.nextBlocks[2]);
+    DrawNextBlock(board.nextBlockID, 0, board.nextBlocks[0]);
+    DrawNextBlock(board.nextBlockID, 1, board.nextBlocks[1]);
+    DrawNextBlock(board.nextBlockID, 2, board.nextBlocks[2]);
 }
