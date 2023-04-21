@@ -210,6 +210,17 @@ func (wss *WebsocketServer) listRoom(msg *Message) {
 	wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
 }
 
+func (wss *WebsocketServer) listRank(msg *Message) {
+	count, err := strconv.Atoi(msg.Data)
+	if err != nil {
+		Error.Println("listRank count error:", err, msg.Data)
+		count = 5
+	}
+	msg.RankList = Manager.getRankList(count)
+
+	wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
+}
+
 func (wss *WebsocketServer) startGame(msg *Message) {
 	for _, client := range wss.rooms[msg.RoomId].Clients {
 		client.Game.Start()
@@ -247,6 +258,9 @@ func (wss *WebsocketServer) HandleMessage(msg *Message) {
 
 	case "list-room":
 		wss.listRoom(msg)
+
+	case "list-rank":
+		wss.listRank(msg)
 
 	case "over-game", "sync-game", "end-game":
 		wss.sendInTheRoom(msg.RoomId, msg)

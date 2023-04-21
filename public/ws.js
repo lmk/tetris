@@ -35,8 +35,8 @@ var messageHandler = function(msg) {
     case 'new-nick':
       window.Game.SetOwner(msg.data);
 
-          // sleep 1초 room list 조회
-      setTimeout(() => send('list-room', ""), 1000)
+      setTimeout(() => send('list-rank', '5'), 1000)
+      setTimeout(() => send('list-room', ''), 1000)
       break;
 
     case 'set-nick':
@@ -145,11 +145,11 @@ var messageHandler = function(msg) {
       }
 
       if (msg.action == 'end-game') {
-        $('#winner-nick').text(msg.sender)
-        $('#winner-rank').text(msg.Data)
-        $('#winner-score').text((msg.score==undefined)?0:msg.score)
+        $('#winner-nick').text(msg.sender);
+        $('#winner-rank').text(msg.data);
+        $('#winner-score').text((msg.score==undefined)?0:msg.score);
+        $('#modal-over-game').modal('hide');
         $('#modal-winner').modal('show');
-        //alert("Congratulations!! "+msg.sender+" has in the top "+ msg.Data +" with " + msg.score + " score");
       }
       break;
 
@@ -174,7 +174,26 @@ var messageHandler = function(msg) {
 
       break;
 
+    case 'list-rank':
+      $('#topRank').html("");
+
+      if (msg.rankList.length > 0) {
+
+        let html = '<ul class="list-group"><li class="list-group-item active" aria-current="true">Top ' + msg.rankList.length + '</li>';
+
+        for (let i = 0; i < msg.rankList.length; i++) {
+          let rank = msg.rankList[i];
+          html += '<li class="list-group-item"><span class="rank badge bg-secondary">' + rank.rank + '</span><span class="badge text-bg-success nick">' + rank.nick + '</span> <span class="badge text-bg-info score">' + rank.score + '</span> <span class="date"> '+ rank.date +'</span></li> ';
+        }
+
+        html += '</ul>';
+        $('#topRank').append(html);
+  
+      }
+      break;
+
     default:
+      print("Unknown message: " + msg.action)
       break;
   }
 }

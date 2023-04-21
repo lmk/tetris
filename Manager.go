@@ -1,12 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
 	"strconv"
-	"strings"
-	"time"
 )
 
 type Player struct {
@@ -78,71 +73,23 @@ func (gm *manager) run() {
 	}
 }
 
-// top 20
-func (gm *manager) SaveTop20(nick string, score int) int {
-	// 파일을 읽는다.
-	file, err := os.OpenFile("top20.txt", os.O_RDWR|os.O_CREATE, 0666)
+func (gm *manager) getRankList(count int) (rankList []Rank) {
+
+	rankList, err := ReadRankList(count)
 	if err != nil {
-		Error.Println(err)
+		Error.Println("getRankList fail", err)
+		return nil
+	}
+
+	return rankList
+}
+
+func (gm *manager) SaveTop(nick string, score int) int {
+	rank, err := SaveTopRank(nick, score)
+	if err != nil {
+		Error.Println("SaveTop fail", err)
 		return -1
 	}
-	defer file.Close()
-
-	buf := ""
-
-	// 한줄씩 읽어서, nick과 score를 비교한다.
-	// score가 더 크면, 그 줄을 지우고, 새로운 줄을 삽입한다.
-	// 그렇지 않으면, 그냥 넘어간다.
-	// 20개가 넘으면, 마지막 줄을 지운다.
-
-	rank := -1
-
-	reader := bufio.NewReader(file)
-	for i := 0; i < 20; i++ {
-		line, _, err := reader.ReadLine()
-		if err != nil {
-			if err.Error() == "EOF" {
-				buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02T15:04:05"))
-				rank = i + 1
-			} else {
-				Error.Println(err)
-			}
-			break
-		}
-
-		info := strings.Split(string(line), ",")
-		if len(info) != 3 {
-			Error.Printf("Invalid line %d: %s", i, string(line))
-			break
-		}
-
-		s, err := strconv.Atoi(info[1])
-		if err != nil {
-			Error.Printf("Invalid score %d: %s", i, string(line))
-			break
-		}
-
-		if rank == -1 && score > s {
-			buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02T15:04:05"))
-			i++
-			rank = i
-		}
-
-		if i < 20 {
-			buf += string(line) + "\n"
-		}
-	}
-
-	if rank != -1 {
-		// 파일을 다시 쓴다.
-		file.Seek(0, 0)
-		_, err := file.WriteString(buf)
-		if err != nil {
-			Error.Printf("Invalid write: %s", err)
-		}
-	}
-
-	file.Close()
 
 	return rank
 }
@@ -204,8 +151,8 @@ func (gm *manager) endGame(nick string) {
 		// 승자에게 플레이어수 x 100점 추가
 		player.Client.Game.AddScore(100 * (len(player.Client.ws.rooms[player.RoomId].Clients) - 1))
 
-		// top 20 안에 있으면 추가
-		rank := gm.SaveTop20(nick, player.Client.Game.Score)
+		// top 안에 있으면 추가
+		rank := gm.SaveTop(nick, player.Client.Game.Score)
 
 		msg := &Message{
 			Action: "end-game",

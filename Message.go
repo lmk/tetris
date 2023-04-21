@@ -27,4 +27,7 @@ type Message struct {
 
 	// sync-game
 	CurrentBlock *Block `json:"block,omitempty"`
+
+	// list-rank
+	RankList []Rank `json:"rankList,omitempty"`
 }
