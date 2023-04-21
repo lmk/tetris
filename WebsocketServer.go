@@ -53,6 +53,7 @@ func (wss *WebsocketServer) report() {
 	for roomId, info := range wss.rooms {
 		report += fmt.Sprintf("[%v:%d],", roomId, len(info.Clients))
 	}
+	report = report[:len(report)-1]
 
 	Info.Println(report)
 }
@@ -68,7 +69,7 @@ func (wss *WebsocketServer) Run() {
 		case client := <-wss.register:
 			room := wss.rooms[WAITITNG_ROOM]
 			if room == nil {
-				wss.rooms[WAITITNG_ROOM] = NewRoomInfo(WAITITNG_ROOM, client, "no title")
+				wss.rooms[WAITITNG_ROOM] = NewRoomInfo(WAITITNG_ROOM, client, "Watting Room")
 			} else {
 				room.Clients[client.Nick] = client
 			}
@@ -90,7 +91,13 @@ func (wss *WebsocketServer) Run() {
 
 			Manager.Unregister(client)
 
-			wss.OutRoom(roomId, client.Nick)
+			if !wss.OutRoom(roomId, client.Nick) {
+				Error.Println("unregister error: unknown room ", roomId, client.Nick, client.socket.RemoteAddr().String())
+				close(client.send)
+				continue
+			}
+
+			wss.RefreshWaitingRoom()
 
 			close(client.send)
 

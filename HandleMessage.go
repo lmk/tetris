@@ -84,33 +84,49 @@ func (wss *WebsocketServer) newJoinRoom(msg *Message) {
 	} else {
 		// 방에 입장한다.
 		roomId, _ = strconv.Atoi(msg.Data)
-		wss.rooms[roomId].Clients[msg.Sender] = player.Client
 	}
-
-	player.RoomId = roomId
 
 	// 개임을 생성한다.
 	Manager.NewGame(roomId, player.Client)
 
-	// 이전방에서 삭제
-	delete(wss.rooms[oldRoomId].Clients, msg.Sender)
-	if len(wss.rooms[msg.RoomId].Clients) == 0 {
-		delete(wss.rooms, oldRoomId)
+	if !wss.OutRoom(oldRoomId, msg.Sender) {
+		Error.Printf("[newJoinRoom] out room fail, roomID:%d, user:%s", oldRoomId, msg.Sender)
 	}
 
-	// 방에 입장한 사용자에게 보내기
-	msg.Action = "join-room"
-	msg.RoomId = roomId
-	msg.RoomList = append(msg.RoomList, *wss.rooms[roomId])
+	if !wss.InRoom(roomId, msg.Sender) {
+		Error.Printf("[newJoinRoom] in room fail, roomID:%d, user:%s", roomId, msg.Sender)
+	}
 
-	wss.sendInTheRoom(roomId, msg)
+	wss.RefreshWaitingRoom()
 }
 
-func (wss *WebsocketServer) OutRoom(roomId int, nick string) {
+func (wss *WebsocketServer) InRoom(roomId int, nick string) bool {
+	player, ok := Manager.players[nick]
+	if !ok {
+		Error.Println(nick, " player not found")
+		return false
+	}
+
+	player.RoomId = roomId
+	wss.rooms[roomId].Clients[nick] = player.Client
+
+	// 방에 입장한 사용자에게 보내기
+	msg := &Message{
+		Action: "join-room",
+		RoomId: roomId,
+		Sender: nick}
+	msg.RoomList = appendRoomInfo(msg.RoomList, wss.rooms[roomId])
+
+	wss.sendInTheRoom(roomId, msg)
+
+	return true
+}
+
+func (wss *WebsocketServer) OutRoom(roomId int, nick string) bool {
 
 	if _, ok := wss.rooms[roomId]; !ok {
 		Error.Println("room not found, roomID:", roomId)
-		return
+		return false
 	}
 
 	delete(wss.rooms[roomId].Clients, nick)
@@ -131,9 +147,21 @@ func (wss *WebsocketServer) OutRoom(roomId int, nick string) {
 			Action: "leave-room",
 			RoomId: roomId,
 			Sender: nick}
+		msg.RoomList = appendRoomInfo(msg.RoomList, wss.rooms[roomId])
 
 		wss.sendInTheRoom(msg.RoomId, msg)
 	}
+
+	return true
+}
+
+func (wss *WebsocketServer) RefreshWaitingRoom() {
+	msg := &Message{
+		Action: "list-room",
+		RoomId: WAITITNG_ROOM,
+		Sender: "server"}
+	msg.RoomList = wss.getAllRoomInfo()
+	wss.sendInTheRoom(WAITITNG_ROOM, msg)
 }
 
 // leaveRoom 방 나가기 처리
@@ -145,33 +173,38 @@ func (wss *WebsocketServer) leaveRoom(msg *Message) {
 		return
 	}
 
-	// 대기실로 이동
-	wss.rooms[WAITITNG_ROOM].Clients[msg.Sender] = client
-
 	// 게임 중이면 종료
-	if client.game.IsPlaying() {
-		client.game.Stop()
+	if client.Game.IsPlaying() {
+		client.Game.Stop()
 	}
 
 	// 방에서 나가기
-	wss.OutRoom(msg.RoomId, msg.Sender)
+	if !wss.OutRoom(msg.RoomId, msg.Sender) {
+		Error.Printf("[leaveRoom] out room fail, roomID:%d, user:%s", msg.RoomId, msg.Sender)
+	}
 
-	// 대기실 입장 메시지 보내기
-	msg.Action = "join-room"
-	msg.RoomId = WAITITNG_ROOM
-	msg.RoomList = append(msg.RoomList, *wss.rooms[WAITITNG_ROOM])
+	// 대기실로 이동
+	if !wss.InRoom(WAITITNG_ROOM, msg.Sender) {
+		Error.Printf("[leaveRoom] in room fail, roomID:%d, user:%s", WAITITNG_ROOM, msg.Sender)
+	}
 
-	wss.sendInTheRoom(WAITITNG_ROOM, msg)
+	wss.RefreshWaitingRoom()
+}
+
+func (wss *WebsocketServer) getAllRoomInfo() []RoomInfo {
+	roomList := make([]RoomInfo, 0, len(wss.rooms))
+
+	for _, roomInfo := range wss.rooms {
+		roomList = appendRoomInfo(roomList, roomInfo)
+	}
+
+	return roomList
 }
 
 // listRoom 방 목록 보기 처리
 func (wss *WebsocketServer) listRoom(msg *Message) {
 
-	msg.RoomList = make([]RoomInfo, 0, len(wss.rooms))
-
-	for _, roomInfo := range wss.rooms {
-		msg.RoomList = append(msg.RoomList, *roomInfo)
-	}
+	msg.RoomList = wss.getAllRoomInfo()
 
 	// 요청한 사용자에게 보내기
 	wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
@@ -179,7 +212,7 @@ func (wss *WebsocketServer) listRoom(msg *Message) {
 
 func (wss *WebsocketServer) startGame(msg *Message) {
 	for _, client := range wss.rooms[msg.RoomId].Clients {
-		client.game.Start()
+		client.Game.Start()
 	}
 }
 
@@ -187,6 +220,11 @@ func (wss *WebsocketServer) actionGame(msg *Message) {
 	game := Manager.getGame(msg.Sender)
 	if game == nil {
 		Warning.Println("Unknown player:", msg.Sender)
+		return
+	}
+
+	if !game.IsPlaying() {
+		Warning.Println("Not playing:", msg.Sender)
 		return
 	}
 
@@ -210,7 +248,7 @@ func (wss *WebsocketServer) HandleMessage(msg *Message) {
 	case "list-room":
 		wss.listRoom(msg)
 
-	case "over-game", "sync-game":
+	case "over-game", "sync-game", "end-game":
 		wss.sendInTheRoom(msg.RoomId, msg)
 
 	case "gift-full-blocks":

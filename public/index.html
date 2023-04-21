@@ -13,37 +13,80 @@
   <script src="/tetris.js"></script>
 </head>
 <body>
-	<h1>War Tetris</h1>
-  <div id="game" class="row container">
-    <span id="roomId" class="roomId"></span>
-    <span id="roomTitle" class="roomTitle"></span>
-    <div id="my-game" class="">
-      <div id="my-info">
+	<h1></h1>
+  <div id="game" class="flex-container">
+    <div class="card">
+      <div class="card-header">
+        <span id="roomId" class="badge bg-success"></span>
+        <span id="roomTitle"></span>
+      </div>
+    </div>
+    <div id="startButtonArea" class="d-grid gap-2"></div>
+    <div id="my-game" class="row">
+      <div id="my-info" class="col-sm-4 column">
         <span id="my-nick"></span>
         <span id="score">
           my score: <span id="my-score"></span>
         </span>
-        <div id="next" class="">
-          <h6>next blocks</h6>
-          <span id="my-nextBlock0" class="nextBlock col-sm-1"></span>
-          <span id="my-nextBlock1" class="nextBlock col-sm-1"></span>
-          <span id="my-nextBlock2" class="nextBlock col-sm-1"></span>
-        </div>
       </div>
-      <div id="my-game-board" class="col-sm-4">
+      <div id="my-next" class="col-sm-4 column">
+        <span id="my-nextBlock0" class="nextBlock"></span>
+        <span id="my-nextBlock1" class="nextBlock"></span>
+        <span id="my-nextBlock2" class="nextBlock"></span>
+      </div>
+      <div id="my-game-board" class="col-sm-4 column">
         <div id="my-board"></div>
       </div>
     </div>
+    <div id="enermy-boards" class="flex-container"></div>
   </div>
   <div id="room">
-    <h3>room list</h3>
     <div id="my">
-      <input type="text" id="newNick" placeholder="input your nick name" />
-      <button id="setNick">change nick name</button>
-      <button id="newGame">new game</button>
+      <div class="input-group mb-3">
+        <input type="text" id="newNick" class="form-control" placeholder="input your nick name" aria-label="input your nick name" aria-describedby="setNick">
+        <div class="input-group-append">
+          <button class="input-group-text" id="setNick">change nick name</span>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button id="newGame" class ="btn btn-success">New Game</button>
+      </div>
     </div>
-    <div id="roomList">
+    <div  class="roomArea">
+      <h5>room list</h5>
+      <div id="roomList"></div>
     </div>
   </div>
+  <!-- Modal over-game -->
+  <div class="modal fade" id="modal-over-game" tabindex="-1" aria-labelledby="modal-title-over-game" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-title-over-game">Game over</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal winner -->
+  <div class="modal fade" id="modal-winner" tabindex="-1" aria-labelledby="modal-title-winner" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-title-winner">Congratulations!!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <span id="winner-nick"></span> has in the top <span id="winner-rank"></span> with <span id="winner-score"></span> score
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>  
 </body>
 </html>

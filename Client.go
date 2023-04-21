@@ -13,7 +13,7 @@ type Client struct {
 	socket *websocket.Conn  `json:"-"`
 	send   chan *Message    `json:"-"` // to websocket client
 	ws     *WebsocketServer `json:"-"`
-	game   *Game            `json:"-"`
+	Game   *Game            `json:"game,omitempty"`
 }
 
 func NewClient(conn *websocket.Conn, ws *WebsocketServer) *Client {
@@ -24,7 +24,7 @@ func NewClient(conn *websocket.Conn, ws *WebsocketServer) *Client {
 		socket: conn,
 		ws:     ws,
 		send:   make(chan *Message),
-		game:   nil,
+		Game:   nil,
 	}
 }
 

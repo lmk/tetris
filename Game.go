@@ -17,15 +17,15 @@ const (
 )
 
 type Game struct {
-	owner           string        // owner of game
-	ch              chan *Message // request from manager
-	managerCh       chan *Message // response to manager
-	status          string        // ready, playing, over
-	cell            [][]int       // 0: empty, other: block index
-	score           int
-	currentBlock    *Block
-	nextBlockIndexs []int // next block indexs 10
-	cycleMs         int   // cycle time in ms
+	Owner           string        `json:"-"`     // owner of game
+	Ch              chan *Message `json:"-"`     // request from manager
+	ManagerCh       chan *Message `json:"-"`     // response to manager
+	State           string        `json:"state"` // ready, playing, over
+	Cell            [][]int       `json:"-"`     // 0: empty, other: block index
+	Score           int           `json:"score,omitempty"`
+	CurrentBlock    *Block        `json:"-"`
+	NextBlockIndexs []int         `json:"-"` // next block indexs 10
+	CycleMs         int           `json:"-"` // cycle time in ms
 }
 
 // NewGame create a new game
@@ -33,18 +33,18 @@ type Game struct {
 // id: game id
 func NewGame(ch chan *Message, owner string) *Game {
 	game := Game{
-		owner:        owner,
-		ch:           make(chan *Message),
-		managerCh:    ch,
-		status:       "ready",
-		score:        0,
-		currentBlock: NewBlock((rand.Intn(len(SHAPES)) + 1)),
-		cycleMs:      1000,
-		cell:         make([][]int, BOARD_ROW),
+		Owner:        owner,
+		Ch:           make(chan *Message),
+		ManagerCh:    ch,
+		State:        "ready",
+		Score:        0,
+		CurrentBlock: NewBlock((rand.Intn(len(SHAPES)) + 1)),
+		CycleMs:      1000,
+		Cell:         make([][]int, BOARD_ROW),
 	}
 
 	for i := 0; i < BOARD_ROW; i++ {
-		game.cell[i] = make([]int, BOARD_COLUMN)
+		game.Cell[i] = make([]int, BOARD_COLUMN)
 	}
 
 	game.CreateNextBlock()
@@ -53,14 +53,14 @@ func NewGame(ch chan *Message, owner string) *Game {
 }
 
 func (g *Game) reset() {
-	g.score = 0
-	g.currentBlock = NewBlock((rand.Intn(len(SHAPES)) + 1))
-	g.cycleMs = 1000
-	g.cell = make([][]int, BOARD_ROW)
-	g.nextBlockIndexs = []int{}
+	g.Score = 0
+	g.CurrentBlock = NewBlock((rand.Intn(len(SHAPES)) + 1))
+	g.CycleMs = 1000
+	g.Cell = make([][]int, BOARD_ROW)
+	g.NextBlockIndexs = []int{}
 
 	for i := 0; i < BOARD_ROW; i++ {
-		g.cell[i] = make([]int, BOARD_COLUMN)
+		g.Cell[i] = make([]int, BOARD_COLUMN)
 	}
 
 	g.CreateNextBlock()
@@ -68,16 +68,16 @@ func (g *Game) reset() {
 
 func (g *Game) CreateNextBlock() {
 
-	count := 10 - len(g.nextBlockIndexs)
+	count := 10 - len(g.NextBlockIndexs)
 
 	for i := 0; i < count; i++ {
-		g.nextBlockIndexs = append(g.nextBlockIndexs, (rand.Intn(len(SHAPES)) + 1))
+		g.NextBlockIndexs = append(g.NextBlockIndexs, (rand.Intn(len(SHAPES)) + 1))
 	}
 }
 
 func (g *Game) isSafeToRoteate() bool {
 	block := Block{}
-	block.Clone(g.currentBlock)
+	block.Clone(g.CurrentBlock)
 	block.Rotate()
 
 	for r := 0; r < BLOCK_ROW; r++ {
@@ -90,7 +90,7 @@ func (g *Game) isSafeToRoteate() bool {
 					return false
 				}
 
-				if g.cell[y][x] != EMPTY {
+				if g.Cell[y][x] != EMPTY {
 					return false
 				}
 			}
@@ -102,7 +102,7 @@ func (g *Game) isSafeToRoteate() bool {
 
 func (g *Game) isSafeNewBlock() bool {
 
-	newBlock := NewBlock(g.nextBlockIndexs[0])
+	newBlock := NewBlock(g.NextBlockIndexs[0])
 
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
@@ -114,7 +114,7 @@ func (g *Game) isSafeNewBlock() bool {
 					return false
 				}
 
-				if g.cell[y][x] != EMPTY {
+				if g.Cell[y][x] != EMPTY {
 					return false
 				}
 			}
@@ -127,15 +127,15 @@ func (g *Game) isSafeNewBlock() bool {
 func (g *Game) isSafeToDown() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
-			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row + 1
-				x := c + g.currentBlock.Col
+			if g.CurrentBlock.Shape[r][c] != EMPTY {
+				y := r + g.CurrentBlock.Row + 1
+				x := c + g.CurrentBlock.Col
 
 				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
-				if g.cell[y][x] != EMPTY {
+				if g.Cell[y][x] != EMPTY {
 					return false
 				}
 			}
@@ -148,15 +148,15 @@ func (g *Game) isSafeToDown() bool {
 func (g *Game) isSafeToLeft() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
-			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row
-				x := c + g.currentBlock.Col - 1
+			if g.CurrentBlock.Shape[r][c] != EMPTY {
+				y := r + g.CurrentBlock.Row
+				x := c + g.CurrentBlock.Col - 1
 
 				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
-				if g.cell[y][x] != EMPTY {
+				if g.Cell[y][x] != EMPTY {
 					return false
 				}
 			}
@@ -169,15 +169,15 @@ func (g *Game) isSafeToLeft() bool {
 func (g *Game) isSafeToRight() bool {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
-			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row
-				x := c + g.currentBlock.Col + 1
+			if g.CurrentBlock.Shape[r][c] != EMPTY {
+				y := r + g.CurrentBlock.Row
+				x := c + g.CurrentBlock.Col + 1
 
 				if x < 0 || x >= BOARD_COLUMN || y < 0 || y >= BOARD_ROW {
 					return false
 				}
 
-				if g.cell[y][x] != EMPTY {
+				if g.Cell[y][x] != EMPTY {
 					return false
 				}
 			}
@@ -190,11 +190,11 @@ func (g *Game) isSafeToRight() bool {
 func (g *Game) currentBlockToBoard() {
 	for r := 0; r < BLOCK_ROW; r++ {
 		for c := 0; c < BLOCK_COLUMN; c++ {
-			if g.currentBlock.Shape[r][c] != EMPTY {
-				y := r + g.currentBlock.Row
-				x := c + g.currentBlock.Col
+			if g.CurrentBlock.Shape[r][c] != EMPTY {
+				y := r + g.CurrentBlock.Row
+				x := c + g.CurrentBlock.Col
 
-				g.cell[y][x] = g.currentBlock.ShapeIndex
+				g.Cell[y][x] = g.CurrentBlock.ShapeIndex
 			}
 		}
 	}
@@ -203,12 +203,12 @@ func (g *Game) currentBlockToBoard() {
 func (g *Game) shiftDownCell(row int) {
 	for r := row; r > 0; r-- {
 		for c := 0; c < BOARD_COLUMN; c++ {
-			g.cell[r][c] = g.cell[r-1][c]
+			g.Cell[r][c] = g.Cell[r-1][c]
 		}
 	}
 
 	for c := 0; c < BOARD_COLUMN; c++ {
-		g.cell[0][c] = EMPTY
+		g.Cell[0][c] = EMPTY
 	}
 }
 
@@ -231,27 +231,27 @@ func (g *Game) procFullLine() [][]int {
 	removedLines := [][]int{}
 
 	maxRow := BOARD_ROW
-	if g.currentBlock.Row+BLOCK_ROW < BOARD_ROW {
-		maxRow = g.currentBlock.Row + BLOCK_ROW
+	if g.CurrentBlock.Row+BLOCK_ROW < BOARD_ROW {
+		maxRow = g.CurrentBlock.Row + BLOCK_ROW
 	}
 
-	for r := g.currentBlock.Row; r < maxRow; r++ {
+	for r := g.CurrentBlock.Row; r < maxRow; r++ {
 
-		y := r - g.currentBlock.Row
+		y := r - g.CurrentBlock.Row
 		x := 0
 
 		isFull := true
 
 		for c := 0; c < BOARD_COLUMN; c++ {
 
-			x = c - g.currentBlock.Col
+			x = c - g.CurrentBlock.Col
 
 			// if cell is empty, check current block
-			if g.cell[r][c] == EMPTY {
+			if g.Cell[r][c] == EMPTY {
 
-				if g.currentBlock.inBlock(r, c) {
+				if g.CurrentBlock.inBlock(r, c) {
 
-					if g.currentBlock.Shape[y][x] == EMPTY {
+					if g.CurrentBlock.Shape[y][x] == EMPTY {
 						isFull = false
 						break
 					}
@@ -264,7 +264,7 @@ func (g *Game) procFullLine() [][]int {
 
 		if isFull {
 
-			removedLines = appendRow(removedLines, g.cell[r])
+			removedLines = appendRow(removedLines, g.Cell[r])
 
 			g.shiftDownCell(r)
 
@@ -275,8 +275,8 @@ func (g *Game) procFullLine() [][]int {
 
 			// currnet block to board
 			for i := 0; i < BLOCK_COLUMN; i++ {
-				if g.currentBlock.Shape[y][i] != EMPTY {
-					g.cell[r][g.currentBlock.Col+i] = g.currentBlock.ShapeIndex
+				if g.CurrentBlock.Shape[y][i] != EMPTY {
+					g.Cell[r][g.CurrentBlock.Col+i] = g.CurrentBlock.ShapeIndex
 				}
 			}
 		}
@@ -286,20 +286,20 @@ func (g *Game) procFullLine() [][]int {
 }
 
 func (g *Game) AddScore(score int) {
-	g.score += score
+	g.Score += score
 }
 
 func (g *Game) firstNextToCurrnetBlock() {
-	g.currentBlock = NewBlock(g.nextBlockIndexs[0])
-	g.nextBlockIndexs = g.nextBlockIndexs[1:]
+	g.CurrentBlock = NewBlock(g.NextBlockIndexs[0])
+	g.NextBlockIndexs = g.NextBlockIndexs[1:]
 }
 
 func (g *Game) IsGameOver() bool {
-	return g.status == "over"
+	return g.State == "over"
 }
 
 func (g *Game) IsPlaying() bool {
-	return g.status == "playing"
+	return g.State == "playing"
 }
 
 // nextTern : 다음 턴으로 넘어감
@@ -330,7 +330,7 @@ func (g *Game) toRotate() bool {
 		return false
 	}
 
-	g.currentBlock.Rotate()
+	g.CurrentBlock.Rotate()
 
 	return true
 }
@@ -340,7 +340,7 @@ func (g *Game) toLeft() bool {
 		return false
 	}
 
-	g.currentBlock.Col--
+	g.CurrentBlock.Col--
 
 	return true
 }
@@ -350,7 +350,7 @@ func (g *Game) toRight() bool {
 		return false
 	}
 
-	g.currentBlock.Col++
+	g.CurrentBlock.Col++
 
 	return true
 }
@@ -360,7 +360,7 @@ func (g *Game) toDown() bool {
 		return false
 	}
 
-	g.currentBlock.Row++
+	g.CurrentBlock.Row++
 
 	return true
 }
@@ -372,7 +372,7 @@ func (g *Game) toDrop() bool {
 	}
 
 	for g.isSafeToDown() {
-		g.currentBlock.Row++
+		g.CurrentBlock.Row++
 	}
 
 	return true
@@ -380,29 +380,29 @@ func (g *Game) toDrop() bool {
 
 func (g *Game) receiveFullBlocks(blocks [][]int) bool {
 
-	g.cell = append(g.cell, blocks...)
+	g.Cell = append(g.Cell, blocks...)
 
 	// check gamevoer 밀린 위쪽 cell에 블럭이 있으면 게임오버
 	for r := 0; r < len(blocks); r++ {
-		for c := 0; c < len(g.cell[r]); c++ {
-			if g.cell[r][c] != EMPTY {
+		for c := 0; c < len(g.Cell[r]); c++ {
+			if g.Cell[r][c] != EMPTY {
 				return false
 			}
 		}
 	}
 
-	g.cell = g.cell[len(blocks):]
+	g.Cell = g.Cell[len(blocks):]
 
 	return true
 }
 
 func (g *Game) gameOver() {
-	g.status = "over"
+	g.State = "over"
 }
 
 // Action : 게임에 메시지를 전달한다.
 func (g *Game) Action(msg *Message) {
-	g.ch <- msg
+	g.Ch <- msg
 }
 
 // Stop : 게임을 종료시킨다.
@@ -420,7 +420,7 @@ func (g *Game) Start() {
 	}
 
 	g.reset()
-	g.status = "playing"
+	g.State = "playing"
 	g.SendStartGame()
 
 	go g.run()
@@ -430,7 +430,7 @@ func (g *Game) run() {
 
 	for !g.IsGameOver() {
 		select {
-		case msg := <-g.ch:
+		case msg := <-g.Ch:
 			switch msg.Action {
 			case "block-rotate":
 				g.toRotate()
@@ -473,7 +473,7 @@ func (g *Game) run() {
 				g.SendSyncGame()
 			}
 
-		case <-time.After(time.Millisecond * time.Duration(g.cycleMs)):
+		case <-time.After(time.Millisecond * time.Duration(g.CycleMs)):
 			if !g.toDown() && !g.nextTern() {
 				return
 			}
@@ -486,42 +486,42 @@ func (g *Game) run() {
 
 func (g *Game) SendGameOver() {
 
-	g.managerCh <- &Message{
+	g.ManagerCh <- &Message{
 		Action:       "over-game",
-		Sender:       g.owner,
-		Cells:        g.cell,
-		CurrentBlock: g.currentBlock,
-		Score:        g.score,
+		Sender:       g.Owner,
+		Cells:        g.Cell,
+		CurrentBlock: g.CurrentBlock,
+		Score:        g.Score,
 	}
 }
 
 func (g *Game) SendStartGame() {
 
-	g.managerCh <- &Message{
+	g.ManagerCh <- &Message{
 		Action:          "start-game",
-		Sender:          g.owner,
-		NextBlockIndexs: g.nextBlockIndexs,
-		Cells:           g.cell,
-		CurrentBlock:    g.currentBlock,
+		Sender:          g.Owner,
+		NextBlockIndexs: g.NextBlockIndexs,
+		Cells:           g.Cell,
+		CurrentBlock:    g.CurrentBlock,
 	}
 }
 
 func (g *Game) SendSyncGame() {
-	g.managerCh <- &Message{
+	g.ManagerCh <- &Message{
 		Action:          "sync-game",
-		Sender:          g.owner,
-		NextBlockIndexs: g.nextBlockIndexs,
-		Cells:           g.cell,
-		CurrentBlock:    g.currentBlock,
-		Score:           g.score,
+		Sender:          g.Owner,
+		NextBlockIndexs: g.NextBlockIndexs,
+		Cells:           g.Cell,
+		CurrentBlock:    g.CurrentBlock,
+		Score:           g.Score,
 	}
 }
 
 func (g *Game) SendGiftFullBlocks(gift [][]int) {
 
-	g.managerCh <- &Message{
+	g.ManagerCh <- &Message{
 		Action: "gift-full-blocks",
-		Sender: g.owner,
+		Sender: g.Owner,
 		Cells:  gift,
 	}
 }

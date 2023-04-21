@@ -55,8 +55,8 @@ func (gm *manager) Unregister(client *Client) {
 		delete(gm.players, client.Nick)
 	}
 
-	if client.game != nil && !client.game.IsGameOver() {
-		client.game.Stop()
+	if client.Game != nil && !client.Game.IsGameOver() {
+		client.Game.Stop()
 	}
 }
 
@@ -64,7 +64,7 @@ func (gm *manager) NewGame(roomId int, client *Client) *Game {
 
 	// new game
 	game := NewGame(gm.ch, client.Nick)
-	client.game = game
+	client.Game = game
 
 	return game
 }
@@ -72,7 +72,7 @@ func (gm *manager) NewGame(roomId int, client *Client) *Game {
 func (gm *manager) run() {
 	for {
 		msg := <-gm.ch
-		gm.handleMessage(msg)
+		gm.HandleMessage(msg)
 
 		//time.Sleep(1 * time.Millisecond)
 	}
@@ -101,11 +101,17 @@ func (gm *manager) SaveTop20(nick string, score int) int {
 	for i := 0; i < 20; i++ {
 		line, _, err := reader.ReadLine()
 		if err != nil {
+			if err.Error() == "EOF" {
+				buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02T15:04:05"))
+				rank = i + 1
+			} else {
+				Error.Println(err)
+			}
 			break
 		}
 
 		info := strings.Split(string(line), ",")
-		if len(info) != 2 {
+		if len(info) != 3 {
 			Error.Printf("Invalid line %d: %s", i, string(line))
 			break
 		}
@@ -130,9 +136,9 @@ func (gm *manager) SaveTop20(nick string, score int) int {
 	if rank != -1 {
 		// 파일을 다시 쓴다.
 		file.Seek(0, 0)
-		n, err := file.WriteString(buf)
-		if n > 20 || err != nil {
-			Error.Printf("Invalid write: %d, %s", n, err)
+		_, err := file.WriteString(buf)
+		if err != nil {
+			Error.Printf("Invalid write: %s", err)
 		}
 	}
 
@@ -151,26 +157,32 @@ func (gm *manager) startGame(msg *Message) {
 }
 
 func (gm *manager) overGame(msg *Message) {
+
+	Info.Printf("overGame: %s", msg.Sender)
+
 	if player, ok := gm.players[msg.Sender]; ok {
 		msg.RoomId = player.RoomId
 		player.Client.ws.broadcast <- msg
 
-		winner := &Client{}
+		var winner *Client = nil
 
-		// 방안의 사용자 중에 한명만 state가 playing이면, 그 사용자도 게임을 중지 시킨다.
-		for _, client := range player.Client.ws.rooms[player.RoomId].Clients {
+		if len(player.Client.ws.rooms[player.RoomId].Clients) == 1 {
+			// single play
+			winner = player.Client
+		} else {
+			//multi play
 
-			if client.Nick == msg.Sender {
-				continue
-			}
+			// 방안의 사용자 중에 한명만 state가 playing이면, 그 사용자도 게임을 중지 시킨다.
+			for _, client := range player.Client.ws.rooms[player.RoomId].Clients {
 
-			if client.game != nil && client.game.IsPlaying() {
-				if winner == nil {
-					winner = client
-				} else {
-					// 두명 이상
-					winner = nil
-					break
+				if client.Game != nil && client.Game.IsPlaying() {
+					if winner == nil {
+						winner = client
+					} else {
+						// 두명 이상
+						winner = nil
+						break
+					}
 				}
 			}
 		}
@@ -187,19 +199,19 @@ func (gm *manager) overGame(msg *Message) {
 func (gm *manager) endGame(nick string) {
 	if player, ok := gm.players[nick]; ok {
 
-		player.Client.game.Stop()
+		player.Client.Game.Stop()
 
 		// 승자에게 플레이어수 x 100점 추가
-		player.Client.game.AddScore(100 * len(player.Client.ws.rooms[player.RoomId].Clients))
+		player.Client.Game.AddScore(100 * (len(player.Client.ws.rooms[player.RoomId].Clients) - 1))
 
 		// top 20 안에 있으면 추가
-		rank := gm.SaveTop20(nick, player.Client.game.score)
+		rank := gm.SaveTop20(nick, player.Client.Game.Score)
 
 		msg := &Message{
 			Action: "end-game",
 			Sender: nick,
 			RoomId: player.RoomId,
-			Score:  player.Client.game.score,
+			Score:  player.Client.Game.Score,
 			Data:   strconv.Itoa(rank),
 		}
 		player.Client.ws.broadcast <- msg
@@ -213,7 +225,7 @@ func (gm *manager) syncGame(msg *Message) {
 		msg.RoomId = player.RoomId
 		player.Client.ws.broadcast <- msg
 	} else {
-		Warning.Println("Unknown player:", msg)
+		Warning.Println("[syncGame] Unknown player:", msg.Sender, "room:", msg.RoomId)
 	}
 }
 
@@ -228,7 +240,7 @@ func (gm *manager) giftFullBlocks(msg *Message) {
 
 func (gm *manager) getGame(nick string) *Game {
 	if player, ok := gm.players[nick]; ok {
-		return player.Client.game
+		return player.Client.Game
 	} else {
 		return nil
 	}
@@ -253,7 +265,7 @@ func (gm *manager) getClient(nick string) *Client {
 }
 
 // Game 에서 발생한 이벤트 처리
-func (gm *manager) handleMessage(msg *Message) {
+func (gm *manager) HandleMessage(msg *Message) {
 	switch msg.Action {
 	case "start-game":
 		gm.startGame(msg)

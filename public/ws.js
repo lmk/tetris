@@ -16,7 +16,7 @@ var send = function(action, msg) {
 
   let json = JSON.stringify(data)
 
-  print(json)
+  print("REQUEST: " + json);
 
   if (ws != null && ws.readyState == 1) {
     ws.send(json);
@@ -57,7 +57,7 @@ var messageHandler = function(msg) {
         let html = '<div class="room" id="'+room.roomId+'"><div class="roomId">'+room.roomId+'</div>'
                     + '<div class="roomTitle">'+room.title+'</div>'
                     + '<div class="roomUsers">'+Object.keys(room.nicks)+'</div>'
-                    + '<button class="joinButton">JOIN</button></div>';
+                    + '<button class="joinButton btn btn-primary">JOIN</button></div>';
         $('#roomList').append(html);
         roomCount++;
       }
@@ -89,12 +89,12 @@ var messageHandler = function(msg) {
 
       for (let nick of Object.keys(msg.roomList[0].nicks)) {
         let el = $('#enermy-game-'+nick);
-        if ($('#my-nick').text() != nick && el != undefined) {
-          let html = '<div id="enermy-game-'+nick+'" class="col-sm-1">'
+        if ($('#my-nick').text() != nick && el.length == 0) {
+          let html = '<span id="enermy-game-'+nick+'" class="col-sm-4 column">'
               + '<div id="enermy-name">'+nick+'</div>'
               + '<div id="enermy-score-'+nick+'">0</div>'
-              + '<div id="enermy-board-'+nick+'"></div></div>';
-          $('#game').append(html)
+              + '<div id="enermy-board-'+nick+'" class="enermy-board"></span></div>';
+          $('#enermy-boards').append(html)
 
           window.Game.enermyBoards.set(nick, new Board());
           window.Game.enermyBoards.get(nick).InitEnermy("#enermy-board-"+nick, "#enermy-score-"+nick);
@@ -110,6 +110,10 @@ var messageHandler = function(msg) {
         send('list-room', "") 
       } else {
         $('#enermy-game-'+msg.sender).remove();
+      }
+
+      if (msg.roomId != 0 && msg.roomList[0].owner == $('#my-nick').text() && msg.roomList[0].state == 'ready') {
+        createStartButton();
       }
       break;
 
@@ -133,7 +137,7 @@ var messageHandler = function(msg) {
 
         window.Game.GameOver(msg.sender);
 
-        alert("Game over, please refresh the page to start new game");
+        $('#modal-over-game').modal('show');
 
         createStartButton();
       } else {
@@ -141,7 +145,11 @@ var messageHandler = function(msg) {
       }
 
       if (msg.action == 'end-game') {
-        alert("Congratulations!! "+msg.sender+" has in the top "+ msg.Data +" with " + msg.score + " score");
+        $('#winner-nick').text(msg.sender)
+        $('#winner-rank').text(msg.Data)
+        $('#winner-score').text((msg.score==undefined)?0:msg.score)
+        $('#modal-winner').modal('show');
+        //alert("Congratulations!! "+msg.sender+" has in the top "+ msg.Data +" with " + msg.score + " score");
       }
       break;
 

@@ -1,6 +1,8 @@
 // 게임 화면 안에 시작 버튼 생성
 function createStartButton() {
-    let button = $('<button id="startButton" />')
+    if ($('#startButton').length != 0) return;
+
+    let button = $('<button id="startButton" class="btn btn-primary"/>')
                     .text('START')
                     .click(function() {
                         send("start-game", "");
@@ -8,7 +10,7 @@ function createStartButton() {
                         // delete button
                         $('#startButton').remove();
                     });
-    $('#game').append(button);
+    $('#startButtonArea').append(button);
 }
 
 class Game {
