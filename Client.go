@@ -42,13 +42,8 @@ func getRandomNick() string {
 func (client *Client) Read() {
 
 	defer func() {
-		if client.ws != nil {
-			client.ws.unregister <- client
-		}
-
-		if client.socket != nil {
-			client.socket.Close()
-		}
+		client.ws.unregister <- client
+		client.socket.Close()
 	}()
 
 	// client.socket.SetReadLimit(512)
