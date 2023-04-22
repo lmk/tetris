@@ -13,8 +13,8 @@ type Message struct {
 	Sender string `json:"sender"` // user-nick or game-id
 	Data   string `json:"data,omitempty"`
 
-	RoomId          int   `json:"roomId,omitempty"`
-	NextBlockIndexs []int `json:"nextBlocks,omitempty"`
+	RoomId      int   `json:"roomId,omitempty"`
+	BlockIndexs []int `json:"blockIndexs,omitempty"`
 
 	// for list-room
 	RoomList []RoomInfo `json:"roomList,omitempty"`

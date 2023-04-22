@@ -25,6 +25,7 @@ func runServer() {
 
 	r := gin.Default()
 	r.Use(static.Serve("/", static.LocalFile("public", true)))
+	//r.Use(static.Serve("/sound", static.LocalFile("public/sound", true)))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})

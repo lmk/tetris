@@ -265,26 +265,31 @@ function CreateGame() {
     {
         if(e.keyCode == 32) //space
         {
+            PlaySound("block-down");
             send("block-drop", "")
             e.preventDefault();
         }
         if (e.keyCode == 38) //up
         {
+            PlaySound("block-down");
             send("block-rotate", "")
             e.preventDefault();
         }
         if (e.keyCode == 37) //left
         {
+            PlaySound("block-down");
             send("block-left", "")
             e.preventDefault();
         }
         if(e.keyCode == 39) //Right
         {
+            PlaySound("block-down");
             send("block-right", "")
             e.preventDefault();
         }
         if(e.keyCode == 40) //Down
         {
+            PlaySound("block-down");
             send("block-down", "")
             e.preventDefault();
         }
@@ -378,4 +383,9 @@ function DrawNextBlocks() {
     DrawNextBlock(board.nextBlockID, 0, board.nextBlocks[0]);
     DrawNextBlock(board.nextBlockID, 1, board.nextBlocks[1]);
     DrawNextBlock(board.nextBlockID, 2, board.nextBlocks[2]);
+}
+
+function PlaySound(action) {
+    let audio = new Audio("sound/" + action + ".wav");
+    audio.play();
 }

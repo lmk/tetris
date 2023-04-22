@@ -134,3 +134,8 @@
     background:linear-gradient(to bottom,#ffc1c1,#f86060) !important;
     transition:all 0.3s linear;
 }
+
+.card
+{
+    margin-bottom: 20px;
+}

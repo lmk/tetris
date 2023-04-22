@@ -82,6 +82,7 @@ var messageHandler = function(msg) {
         $('#game').show();
         $('#roomId').text(msg.roomId);        
         $('#roomTitle').text(msg.roomList[0].title);
+        print(msg.roomList[0].owner + ',' + $('#my-nick').text())
         if (msg.roomList[0].owner == $('#my-nick').text()) {
           createStartButton();
         }
@@ -124,39 +125,48 @@ var messageHandler = function(msg) {
       window.Game.myBoard.cells = msg.cells;
       DrawBoard(msg.cells, msg.block);            
 
-      window.Game.myBoard.SetNextBlock(msg.nextBlocks);
+      window.Game.myBoard.SetNextBlock(msg.blockIndexs);
       DrawNextBlocks();
       break;
       
     case 'over-game':
-    case 'end-game':
       if (msg.sender == $('#my-nick').text() && window.Game.myBoard.IsPlaying()) {
 
         window.Game.myBoard.cells = msg.cells;
-        DrawBoard(msg.cells, msg.block);        
+        DrawBoard(msg.cells, msg.block);
 
         window.Game.GameOver(msg.sender);
 
         $('#modal-over-game').modal('show');
 
-        createStartButton();
+        if (msg.roomList[0].owner == $('#my-nick').text()) {
+          createStartButton();
+        }
       } else {
         window.Game.GameOver(msg.sender);
       }
+      break;
 
-      if (msg.action == 'end-game') {
+    case 'end-game':
+      if (msg.data > 0) {
         $('#winner-nick').text(msg.sender);
         $('#winner-rank').text(msg.data);
         $('#winner-score').text((msg.score==undefined)?0:msg.score);
         $('#modal-over-game').modal('hide');
         $('#modal-winner').modal('show');
+      } else {
+        window.Game.GameOver(msg.sender);
       }
+      
+      if (msg.roomList[0].owner == $('#my-nick').text()) {
+        createStartButton();
+      }      
       break;
 
     case 'sync-game':
       if (msg.sender == $('#my-nick').text()) {
 
-        window.Game.myBoard.SetNextBlock(msg.nextBlocks);
+        window.Game.myBoard.SetNextBlock(msg.blockIndexs);
         DrawNextBlocks();
 
         $('#score').text(msg.score);
@@ -179,17 +189,29 @@ var messageHandler = function(msg) {
 
       if (msg.rankList.length > 0) {
 
-        let html = '<ul class="list-group"><li class="list-group-item active" aria-current="true">Top ' + msg.rankList.length + '</li>';
+        let html = '<ul class="list-group"><li class="list-group-item active list-group-item-light" aria-current="true">Top ' + msg.rankList.length + '</li>';
 
         for (let i = 0; i < msg.rankList.length; i++) {
           let rank = msg.rankList[i];
-          html += '<li class="list-group-item"><span class="rank badge bg-secondary">' + rank.rank + '</span><span class="badge text-bg-success nick">' + rank.nick + '</span> <span class="badge text-bg-info score">' + rank.score + '</span> <span class="date"> '+ rank.date +'</span></li> ';
+          html += '<li class="list-group-item text-center d-flex .bg-light">'
+                   +'<span id="rank-num" class="rank p-2">' + rank.rank + '</span>'
+                   +'<span id="rank-nick" class="p-2">' + rank.nick + '</span>'
+                   +'<span id="rank-score" class="p-2">' + rank.score + '</span>'
+                   +'<span id="rank-date" class="p-2"> '+ rank.date +'</span></li> ';
         }
 
         html += '</ul>';
         $('#topRank').append(html);
   
       }
+      break;
+
+    case 'gift-full-blocks':
+      PlaySound(msg.action);
+      break;
+
+    case 'erase-blocks':
+      PlaySound(msg.action);
       break;
 
     default:

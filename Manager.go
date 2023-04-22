@@ -159,8 +159,13 @@ func (gm *manager) endGame(nick string) {
 			Sender: nick,
 			RoomId: player.RoomId,
 			Score:  player.Client.Game.Score,
-			Data:   strconv.Itoa(rank),
 		}
+		msg.RoomList = appendRoomInfo(msg.RoomList, player.Client.ws.rooms[player.RoomId])
+
+		if rank > 0 {
+			msg.Data = strconv.Itoa(rank)
+		}
+
 		player.Client.ws.broadcast <- msg
 	} else {
 		Warning.Println("Unknown player:", nick)
@@ -176,10 +181,30 @@ func (gm *manager) syncGame(msg *Message) {
 	}
 }
 
+func (gm *manager) eraseBlocks(msg *Message) {
+	if player, ok := gm.players[msg.Sender]; ok {
+		msg.RoomId = player.RoomId
+		player.Client.send <- msg
+	} else {
+		Warning.Println("Unknown player:", msg)
+	}
+}
+
 func (gm *manager) giftFullBlocks(msg *Message) {
 	if player, ok := gm.players[msg.Sender]; ok {
 		msg.RoomId = player.RoomId
+
 		player.Client.ws.broadcast <- msg
+
+		// 방안의 사용자들에게 full block을 전달한다.
+		for _, client := range player.Client.ws.rooms[player.RoomId].Clients {
+			if client.Game != nil && client.Game.IsPlaying() && client.Nick != msg.Sender {
+				Info.Println("giftFullBlocks:", client.Nick)
+				client.Game.Ch <- msg
+				Info.Println("giftFullBlocks after", client.Nick)
+			}
+		}
+
 	} else {
 		Warning.Println("Unknown player:", msg)
 	}
@@ -225,6 +250,9 @@ func (gm *manager) HandleMessage(msg *Message) {
 
 	case "gift-full-blocks":
 		gm.giftFullBlocks(msg)
+
+	case "erase-blocks":
+		gm.eraseBlocks(msg)
 
 	default:
 		Error.Fatalln("Unknown action:", msg)

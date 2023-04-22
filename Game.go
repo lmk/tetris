@@ -226,8 +226,9 @@ func appendRow(cell [][]int, row []int) [][]int {
 // currentBlock 이 있는 row만 검사
 // full line이면 row를 삭제하고, 위 row를 한칸씩 내림
 // full line이 아니면, currentBlock를 board에 복사
-func (g *Game) procFullLine() [][]int {
+func (g *Game) procFullLine() ([][]int, []int) {
 
+	removedRowIndexs := []int{}
 	removedLines := [][]int{}
 
 	maxRow := BOARD_ROW
@@ -265,6 +266,7 @@ func (g *Game) procFullLine() [][]int {
 		if isFull {
 
 			removedLines = appendRow(removedLines, g.Cell[r])
+			removedRowIndexs = append(removedRowIndexs, r)
 
 			g.shiftDownCell(r)
 
@@ -282,7 +284,7 @@ func (g *Game) procFullLine() [][]int {
 		}
 	}
 
-	return removedLines
+	return removedLines, removedRowIndexs
 }
 
 func (g *Game) AddScore(score int) {
@@ -308,7 +310,11 @@ func (g *Game) IsPlaying() bool {
 // 새 블럭을 생성
 // 새 블럭을 생성하지 못하면, 게임오버
 func (g *Game) nextTern() bool {
-	removedLines := g.procFullLine()
+	removedLines, removedRowIndexs := g.procFullLine()
+	if len(removedRowIndexs) > 0 {
+		g.SendEraseBlocks(removedRowIndexs)
+	}
+
 	if len(removedLines) > 1 {
 		g.SendGiftFullBlocks(removedLines)
 	}
@@ -486,34 +492,44 @@ func (g *Game) run() {
 
 func (g *Game) SendGameOver() {
 
+	player, ok := Manager.players[g.Owner]
+	if !ok {
+		Error.Println(g.Owner, " player not found")
+		return
+	}
+
+	roomList := make([]RoomInfo, 0)
+	roomList = appendRoomInfo(roomList, player.Client.ws.rooms[player.RoomId])
+
 	g.ManagerCh <- &Message{
 		Action:       "over-game",
 		Sender:       g.Owner,
 		Cells:        g.Cell,
 		CurrentBlock: g.CurrentBlock,
 		Score:        g.Score,
+		RoomList:     roomList,
 	}
 }
 
 func (g *Game) SendStartGame() {
 
 	g.ManagerCh <- &Message{
-		Action:          "start-game",
-		Sender:          g.Owner,
-		NextBlockIndexs: g.NextBlockIndexs,
-		Cells:           g.Cell,
-		CurrentBlock:    g.CurrentBlock,
+		Action:       "start-game",
+		Sender:       g.Owner,
+		BlockIndexs:  g.NextBlockIndexs,
+		Cells:        g.Cell,
+		CurrentBlock: g.CurrentBlock,
 	}
 }
 
 func (g *Game) SendSyncGame() {
 	g.ManagerCh <- &Message{
-		Action:          "sync-game",
-		Sender:          g.Owner,
-		NextBlockIndexs: g.NextBlockIndexs,
-		Cells:           g.Cell,
-		CurrentBlock:    g.CurrentBlock,
-		Score:           g.Score,
+		Action:       "sync-game",
+		Sender:       g.Owner,
+		BlockIndexs:  g.NextBlockIndexs,
+		Cells:        g.Cell,
+		CurrentBlock: g.CurrentBlock,
+		Score:        g.Score,
 	}
 }
 
@@ -523,5 +539,14 @@ func (g *Game) SendGiftFullBlocks(gift [][]int) {
 		Action: "gift-full-blocks",
 		Sender: g.Owner,
 		Cells:  gift,
+	}
+}
+
+func (g *Game) SendEraseBlocks(removedRowIndexs []int) {
+
+	g.ManagerCh <- &Message{
+		Action:      "erase-blocks",
+		Sender:      g.Owner,
+		BlockIndexs: removedRowIndexs,
 	}
 }

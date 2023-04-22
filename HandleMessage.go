@@ -150,6 +150,12 @@ func (wss *WebsocketServer) OutRoom(roomId int, nick string) bool {
 		msg.RoomList = appendRoomInfo(msg.RoomList, wss.rooms[roomId])
 
 		wss.sendInTheRoom(msg.RoomId, msg)
+
+		// 게임 오버 전파
+		if roomId != WAITITNG_ROOM && wss.rooms[roomId].State == "playing" {
+			msg.Action = "over-game"
+			Manager.overGame(msg)
+		}
 	}
 
 	return true
