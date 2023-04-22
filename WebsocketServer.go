@@ -51,9 +51,14 @@ func (wss *WebsocketServer) report() {
 	report := "REPORT:"
 
 	for roomId, info := range wss.rooms {
-		report += fmt.Sprintf("[%v:%d:%s],", roomId, len(info.Clients), info.Owner)
+		//report += fmt.Sprintf("[%v:%d:%s],", roomId, len(info.Clients), info.Owner)
+		report += fmt.Sprintf("[%v:%s:[", roomId, info.Owner)
+		for nick := range info.Clients {
+			report += fmt.Sprintf("%s,", nick)
+		}
+		report = report[:len(report)-1]
+		report += "]]"
 	}
-	report = report[:len(report)-1]
 
 	Info.Println(report)
 }
