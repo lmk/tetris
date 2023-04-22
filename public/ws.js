@@ -157,7 +157,7 @@ var messageHandler = function(msg) {
       } else {
         window.Game.GameOver(msg.sender);
       }
-      
+
       if (msg.roomList[0].owner == $('#my-nick').text()) {
         createStartButton();
       }      
@@ -229,7 +229,7 @@ window.onload = function() {
   }  
 
   // websocket 연결
-  ws = new WebSocket("ws://localhost:8080/ws");
+  ws = new WebSocket("ws://localhost:8090/ws");
   ws.onopen = function(evt) {
     print("OPEN");
   }

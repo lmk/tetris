@@ -57,6 +57,15 @@ func (wss *WebsocketServer) setNick(msg *Message) {
 	wss.rooms[msg.RoomId].Clients[client.Nick] = client
 	delete(wss.rooms[msg.RoomId].Clients, msg.Sender)
 
+	// 방장이면 owner도 변경
+	if wss.rooms[msg.RoomId].Owner == msg.Sender {
+		wss.rooms[msg.RoomId].Owner = msg.Data
+	}
+
+	// manager도 변경
+	Manager.players[msg.Data] = Manager.players[msg.Sender]
+	delete(Manager.players, msg.Sender)
+
 	// 방에 입장한 사용자에게 보내기
 	wss.sendInTheRoom(msg.RoomId, msg)
 }
@@ -139,6 +148,10 @@ func (wss *WebsocketServer) OutRoom(roomId int, nick string) bool {
 			for _, client := range wss.rooms[roomId].Clients {
 				wss.rooms[roomId].Owner = client.Nick
 				break
+			}
+
+			if wss.rooms[roomId].Owner == nick && roomId == WAITITNG_ROOM {
+				wss.rooms[roomId].Owner = ""
 			}
 		}
 
