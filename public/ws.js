@@ -230,6 +230,7 @@ window.onload = function() {
 
   // websocket 연결
   ws = new WebSocket("ws://localhost:8090/ws");
+  //ws = new WebSocket("ws://tt.newtype.dev/ws");
   ws.onopen = function(evt) {
     print("OPEN");
   }
