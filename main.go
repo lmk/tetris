@@ -45,7 +45,7 @@ func runServer() {
 		serveWs(c, WAITITNG_ROOM, wsServer)
 	})
 
-	r.Run(":8080")
+	r.Run(":8090")
 }
 
 func main() {
