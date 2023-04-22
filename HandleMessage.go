@@ -128,6 +128,11 @@ func (wss *WebsocketServer) InRoom(roomId int, nick string) bool {
 
 	wss.sendInTheRoom(roomId, msg)
 
+	// 이미 play 중이면 옵져버 상태로 설정
+	if wss.rooms[roomId].GetState() == "playing" {
+		player.Client.Game.observer()
+	}
+
 	return true
 }
 
@@ -165,7 +170,7 @@ func (wss *WebsocketServer) OutRoom(roomId int, nick string) bool {
 		wss.sendInTheRoom(msg.RoomId, msg)
 
 		// 게임 오버 전파
-		if roomId != WAITITNG_ROOM && wss.rooms[roomId].State == "playing" {
+		if roomId != WAITITNG_ROOM && wss.rooms[roomId].State == "playing" && Manager.getClient(nick).Game.IsPlaying() {
 			msg.Action = "over-game"
 			Manager.overGame(msg)
 		}
@@ -237,7 +242,9 @@ func (wss *WebsocketServer) listRank(msg *Message) {
 	}
 	msg.RankList = Manager.getRankList(count)
 
-	wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
+	if msg.RankList != nil && len(msg.RankList) > 0 {
+		wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
+	}
 }
 
 func (wss *WebsocketServer) startGame(msg *Message) {

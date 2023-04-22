@@ -67,6 +67,7 @@ func ReadRankList(count int) ([]Rank, error) {
 }
 
 func SaveTopRank(nick string, score int) (int, error) {
+
 	// 파일을 읽는다.
 	file, err := os.OpenFile(RANK_FILE, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
@@ -75,21 +76,17 @@ func SaveTopRank(nick string, score int) (int, error) {
 	defer file.Close()
 
 	buf := ""
-
-	// 한줄씩 읽어서, nick과 score를 비교한다.
-	// score가 더 크면, 그 줄을 지우고, 새로운 줄을 삽입한다.
-	// 그렇지 않으면, 그냥 넘어간다.
-	// 20개가 넘으면, 마지막 줄을 지운다.
-
 	rank := -1
 
 	reader := bufio.NewReader(file)
-	for i := 0; i < 20; i++ {
+	for i := 0; i < MAX_RANK; i++ {
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err.Error() == "EOF" {
-				buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02T15:04:05"))
-				rank = i + 1
+				if rank == -1 {
+					rank = i + 1
+					buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02 15:04:05"))
+				}
 			} else {
 				Error.Println(err)
 			}
@@ -109,26 +106,27 @@ func SaveTopRank(nick string, score int) (int, error) {
 		}
 
 		if rank == -1 && score > s {
-			buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02T15:04:05"))
 			i++
 			rank = i
+			buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02 15:04:05"))
 		}
 
-		if i < 20 {
+		if i >= 20 {
 			buf += string(line) + "\n"
 		}
 	}
 
 	if rank != -1 {
 		// 파일을 다시 쓴다.
+		Warning.Println("rank:", rank)
+		Warning.Println(buf)
+
 		file.Seek(0, 0)
 		_, err := file.WriteString(buf)
 		if err != nil {
 			Error.Printf("Invalid write: %s", err)
 		}
 	}
-
-	file.Close()
 
 	return rank, nil
 }

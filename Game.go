@@ -304,6 +304,10 @@ func (g *Game) IsPlaying() bool {
 	return g.State == "playing"
 }
 
+func (g *Game) IsObserver() bool {
+	return g.State == "observer"
+}
+
 // nextTern : 다음 턴으로 넘어감
 // 삭제된 라인 처리
 // 삭제된 라인이 2줄 이상이면, 경쟁자들에게 선물을 보냄
@@ -404,6 +408,10 @@ func (g *Game) receiveFullBlocks(blocks [][]int) bool {
 
 func (g *Game) gameOver() {
 	g.State = "over"
+}
+
+func (g *Game) observer() {
+	g.State = "observer"
 }
 
 // Action : 게임에 메시지를 전달한다.

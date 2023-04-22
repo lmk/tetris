@@ -199,9 +199,7 @@ func (gm *manager) giftFullBlocks(msg *Message) {
 		// 방안의 사용자들에게 full block을 전달한다.
 		for _, client := range player.Client.ws.rooms[player.RoomId].Clients {
 			if client.Game != nil && client.Game.IsPlaying() && client.Nick != msg.Sender {
-				Info.Println("giftFullBlocks:", client.Nick)
 				client.Game.Ch <- msg
-				Info.Println("giftFullBlocks after", client.Nick)
 			}
 		}
 
