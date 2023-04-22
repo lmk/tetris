@@ -116,7 +116,7 @@ func serveWs(ctx *gin.Context, roomId int, wsServer *WebsocketServer) {
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
-		Error.Fatalln(err)
+		Error.Println(err)
 	}
 
 	client := NewClient(conn, wsServer)
