@@ -40,7 +40,12 @@ var messageHandler = function(msg) {
       break;
 
     case 'set-nick':
-      window.Game.SetOwner(msg.data);
+      if (msg.sender == $('#my-nick').text()) {
+        window.Game.SetOwner(msg.data);
+      } else {
+        // 대기실에 nick을 표시할 경우 변경해야 한다.
+      }
+      
       break;
 
     case 'list-room':
