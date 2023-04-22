@@ -111,7 +111,7 @@ func SaveTopRank(nick string, score int) (int, error) {
 			buf += fmt.Sprintf("%s,%d,%s\n", nick, score, time.Now().Format("2006-01-02 15:04:05"))
 		}
 
-		if i >= 20 {
+		if i < 20 {
 			buf += string(line) + "\n"
 		}
 	}
