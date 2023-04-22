@@ -11,7 +11,8 @@ var send = function(action, msg) {
   let data = {
     action: action,
     sender: $('#my-nick').text(),
-    data: msg
+    data: msg,
+    date: Date.now(),
   };
 
   let json = JSON.stringify(data)
