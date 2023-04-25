@@ -112,6 +112,7 @@ var messageHandler = function(msg) {
 
     case 'leave-room':
       if (msg.sender == $('#my-nick').text()) {
+        $('.triangle-container').hide();
         $('#game').hide();
         $('#room').show();
         send('list-room', "") 
@@ -125,6 +126,8 @@ var messageHandler = function(msg) {
       break;
 
     case 'start-game':
+      $('.triangle-container').show();
+
       window.Game.Init();
       window.Game.Start(msg.sender);
 
@@ -136,6 +139,9 @@ var messageHandler = function(msg) {
       break;
       
     case 'over-game':
+
+      $('.triangle-container').hide();
+
       if (msg.sender == $('#my-nick').text() && window.Game.myBoard.IsPlaying()) {
 
         window.Game.myBoard.cells = msg.cells;
@@ -154,6 +160,9 @@ var messageHandler = function(msg) {
       break;
 
     case 'end-game':
+
+      $('.triangle-container').hide();
+      
       if (msg.data > 0) {
         $('#winner-nick').text(msg.sender);
         $('#winner-rank').text(msg.data);

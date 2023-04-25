@@ -139,3 +139,40 @@
 {
     margin-bottom: 20px;
 }
+
+.triangle-container {
+    width: 100%;
+    height: 100%;
+    left: 0px;
+    top: 0px;
+    position: absolute;
+    height: 100vh;
+    overflow: hidden;
+    display: none;
+}
+
+.triangle {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 80;
+}
+
+.triangle-top {
+    clip-path: polygon(0 0, 100% 0, 50% 50%);
+}
+
+.triangle-left {
+    clip-path: polygon(0 0, 0 100%, 50% 50%);
+}
+
+.triangle-bottom {
+    clip-path: polygon(0 100%, 100% 100%, 50% 50%);
+}
+
+.triangle-right {
+    clip-path: polygon(100% 0, 100% 100%, 50% 50%);
+}
