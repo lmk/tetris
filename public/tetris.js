@@ -486,6 +486,15 @@ function DrawNextBlocks() {
 }
 
 function PlaySound(action) {
-    let audio = new Audio("sound/" + action + ".wav");
-    audio.play();
+
+    let path = "sound/" + action + ".wav";
+
+    if (window.Game.sound != null) {
+        window.Game.sound = new Audio(path);
+    } else {
+        window.Game.sound.src = path;
+        window.Game.sound.load();
+    }
+    
+    window.Game.sound.play();
 }

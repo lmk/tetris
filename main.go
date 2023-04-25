@@ -3,6 +3,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
@@ -12,8 +14,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var conf Config
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+
+	// config
+	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
+	flag.IntVar(&conf.Port, "port", 8090, "port")
+	flag.Usage = usage
 }
 
 // 웹 서버를 실행하는 함수
@@ -24,33 +33,34 @@ func runServer() {
 	go wsServer.Run()
 
 	r := gin.Default()
-	r.Use(static.Serve("/", static.LocalFile("public", true)))
-	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
-	})
 
-	// // websocker 통신을 위한 라우팅을 추가한다.
-	// r.GET("/ws/:room", func(c *gin.Context) {
-	// 	//string to int
-	// 	roomId, err := strconv.Atoi(c.Param("room"))
-	// 	if err != nil {
-	// 		Error.Println("Invaild URI", err)
-	// 	} else {
-	// 		serveWs(c, roomId, wsServer)
-	// 	}
-	// })
+	r.LoadHTMLGlob("templates/*")
+
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"wsServer": fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port),
+		})
+	})
 
 	r.GET("/ws", func(c *gin.Context) {
 		serveWs(c, WAITITNG_ROOM, wsServer)
 	})
 
-	r.Run(":8090")
+	r.Use(static.Serve("/", static.LocalFile("public", true)))
+
+	r.Run(fmt.Sprintf(":%d", conf.Port))
 }
 
 func main() {
 
 	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 
-	runServer()
+	initConf()
 
+	runServer()
+}
+
+func usage() {
+	fmt.Printf("Usage: %s -config=<config file>\n", os.Args[0])
+	flag.PrintDefaults()
 }

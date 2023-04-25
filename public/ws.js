@@ -35,10 +35,7 @@ var messageHandler = function(msg) {
 
     case 'new-nick':
       window.Game.SetOwner(msg.data);
-
-      setTimeout(() => send('list-rank', '5'), 1000)
-      setTimeout(() => send('list-room', ''), 1000)
-      break;
+     break;
 
     case 'set-nick':
       if (msg.sender == $('#my-nick').text()) {
@@ -244,10 +241,17 @@ window.onload = function() {
   }  
 
   // websocket 연결
-  ws = new WebSocket("ws://localhost:8090/ws");
-  //ws = new WebSocket("ws://tt.newtype.dev/ws");
+  ws = new WebSocket($('#wsServer').val());
+
   ws.onopen = function(evt) {
     print("OPEN");
+
+    if ($.cookie('nick')!=undefined) {
+      setTimeout(() => send('set-nick', $.cookie('nick')), 500) 
+    }
+
+    setTimeout(() => send('list-rank', '5'), 600)
+    setTimeout(() => send('list-room', ''), 600)
   }
 
   ws.onclose = function(evt) {
@@ -272,6 +276,7 @@ window.onload = function() {
 
   $('#setNick').click(function() {
     send('set-nick', $('#newNick').val())
+    $.cookie('nick', $('#newNick').val(), { expires: 30 });
   });
 
 
