@@ -438,64 +438,69 @@ func (g *Game) Start() {
 	g.SendStartGame()
 
 	go g.run()
+	go g.autoDown()
 }
 
 func (g *Game) run() {
 
 	for !g.IsGameOver() {
-		select {
-		case msg := <-g.Ch:
-			switch msg.Action {
-			case "block-rotate":
-				g.toRotate()
-				g.SendSyncGame()
+		msg := <-g.Ch
+		switch msg.Action {
+		case "block-rotate":
+			g.toRotate()
+			g.SendSyncGame()
 
-			case "block-left":
-				g.toLeft()
-				g.SendSyncGame()
+		case "block-left":
+			g.toLeft()
+			g.SendSyncGame()
 
-			case "block-right":
-				g.toRight()
-				g.SendSyncGame()
+		case "block-right":
+			g.toRight()
+			g.SendSyncGame()
 
-			case "block-down":
-				if !g.toDown() {
-					if !g.nextTern() {
-						return
-					}
-				}
-				g.SendSyncGame()
-
-			case "block-drop":
-				if !g.toDrop() {
-					g.gameOver()
-					g.currentBlockToBoard()
-					g.SendGameOver()
-				}
+		case "block-down":
+			if !g.toDown() {
 				if !g.nextTern() {
 					return
 				}
-				g.SendSyncGame()
-
-			case "gift-full-blocks":
-				if !g.receiveFullBlocks(msg.Cells) {
-					g.gameOver()
-					g.currentBlockToBoard()
-					g.SendGameOver()
-					return
-				}
-				g.SendSyncGame()
 			}
+			g.SendSyncGame()
 
-		case <-time.After(time.Millisecond * time.Duration(g.CycleMs)):
-			if !g.toDown() && !g.nextTern() {
+		case "block-drop":
+			if !g.toDrop() {
+				g.gameOver()
+				g.currentBlockToBoard()
+				g.SendGameOver()
+			}
+			if !g.nextTern() {
+				return
+			}
+			g.SendSyncGame()
+
+		case "gift-full-blocks":
+			if !g.receiveFullBlocks(msg.Cells) {
+				g.gameOver()
+				g.currentBlockToBoard()
+				g.SendGameOver()
 				return
 			}
 			g.SendSyncGame()
 		}
+
 	}
 
-	Info.Println("run game over")
+	Trace.Println("run game over")
+}
+
+func (g *Game) autoDown() {
+	for !g.IsGameOver() {
+		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
+		if !g.toDown() && !g.nextTern() {
+			return
+		}
+		g.SendSyncGame()
+	}
+	Trace.Println("autoDown game over")
 }
 
 func (g *Game) SendGameOver() {
