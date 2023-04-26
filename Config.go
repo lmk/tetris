@@ -9,9 +9,9 @@ import (
 )
 
 type Config struct {
-	ConfigFile string `yaml:"-",json:"-"`
-	Domain     string `yaml:"domain,omitempty",json:"domain,omitempty"`
-	Port       int    `yaml:"port,omitempty",json:"port,omitempty"`
+	ConfigFile string `yaml:"-"`
+	Domain     string `yaml:"domain,omitempty"`
+	Port       int    `yaml:"port,omitempty"`
 }
 
 func (c *Config) Read(fn string) error {

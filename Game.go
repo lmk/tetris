@@ -26,6 +26,7 @@ type Game struct {
 	CurrentBlock    *Block        `json:"-"`
 	NextBlockIndexs []int         `json:"-"` // next block indexs 10
 	CycleMs         int           `json:"-"` // cycle time in ms
+	DurationTime    time.Time     `json:"-"` // duration time
 }
 
 // NewGame create a new game
@@ -326,6 +327,7 @@ func (g *Game) nextTern() bool {
 	if !g.isSafeNewBlock() {
 		g.gameOver()
 		g.SendGameOver()
+		Trace.Print("nextTern")
 		return false
 	}
 	g.firstNextToCurrnetBlock()
@@ -436,6 +438,7 @@ func (g *Game) Start() {
 	g.reset()
 	g.State = "playing"
 	g.SendStartGame()
+	g.DurationTime = time.Now()
 
 	go g.run()
 	go g.autoDown()
@@ -471,6 +474,7 @@ func (g *Game) run() {
 				g.gameOver()
 				g.currentBlockToBoard()
 				g.SendGameOver()
+				Trace.Print("block-drop")
 			}
 			if !g.nextTern() {
 				return
@@ -482,6 +486,7 @@ func (g *Game) run() {
 				g.gameOver()
 				g.currentBlockToBoard()
 				g.SendGameOver()
+				Trace.Print("gift-full-blocks")
 				return
 			}
 			g.SendSyncGame()
@@ -494,11 +499,20 @@ func (g *Game) run() {
 
 func (g *Game) autoDown() {
 	for !g.IsGameOver() {
+		Info.Println("autoDown", g.CycleMs, time.Now())
 		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
 		if !g.toDown() && !g.nextTern() {
 			return
 		}
 		g.SendSyncGame()
+
+		// Faster every minute
+		duration := time.Since(g.DurationTime)
+		if duration > time.Minute*1 {
+			g.CycleMs -= 100
+			g.DurationTime = time.Now()
+		}
+
 	}
 	Trace.Println("autoDown game over")
 }
