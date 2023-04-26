@@ -1,10 +1,14 @@
 # Battle Tetris
 
-## TODO
+## Features
 
 - waitting room
 - preview
 - multi play
+- change nick
+
+## TODO
+
 - BOT
   - Light Finger: 한 불럭씩 손이 빠름
   - Crazy3: 세블럭씩 쌓아서 공격
