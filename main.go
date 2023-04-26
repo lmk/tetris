@@ -16,6 +16,8 @@ import (
 
 var conf Config
 
+var DEBUG = false
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 
@@ -36,9 +38,14 @@ func runServer() {
 
 	r.LoadHTMLGlob("templates/*")
 
+	wsURI := fmt.Sprintf("ws://%s/ws", conf.Domain)
+	if DEBUG {
+		wsURI = fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port)
+	}
+
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"wsServer": fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port),
+			"wsServer": wsURI,
 		})
 	})
 
