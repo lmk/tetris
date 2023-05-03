@@ -489,6 +489,6 @@ function PlaySound(action) {
     if (window.Game.sound != undefined) {
         window.Game.sound.pause();
     }
-    window.Game.sound = new Audio("sound/" + action + ".wav");
+    window.Game.sound = new Audio("sound/" + action + ".mp3");
     window.Game.sound.play();
 }
