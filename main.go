@@ -16,14 +16,13 @@ import (
 
 var conf Config
 
-var DEBUG = false
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 
 	// config
 	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
 	flag.IntVar(&conf.Port, "port", 8090, "port")
+	flag.BoolVar(&conf.IsDebug, "debug", false, "debug mode")
 	flag.Usage = usage
 }
 
@@ -39,7 +38,7 @@ func runServer() {
 	r.LoadHTMLGlob("templates/*")
 
 	wsURI := fmt.Sprintf("ws://%s/ws", conf.Domain)
-	if DEBUG {
+	if conf.IsDebug {
 		wsURI = fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port)
 	}
 
