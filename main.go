@@ -38,13 +38,16 @@ func runServer() {
 	r.LoadHTMLGlob("templates/*")
 
 	wsURI := fmt.Sprintf("ws://%s/ws", conf.Domain)
+	securityPolicy := "<meta http-equiv='Content-Security-Policy' content='upgrade-insecure-requests'>"
 	if conf.IsDebug {
 		wsURI = fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port)
+		securityPolicy = ""
 	}
 
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"wsServer": wsURI,
+			"wsServer":       wsURI,
+			"securityPolicy": securityPolicy,
 		})
 	})
 
