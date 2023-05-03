@@ -58,7 +58,9 @@ class Game {
             [0,1,0,0],
             [0,0,0,0]
         ],
-    ];    
+    ];
+
+    Sounds = undefined;
 
     myBoard = undefined;
     enermyBoards = new Map();
@@ -70,6 +72,40 @@ class Game {
         }
 
         this.myBoard.Init("#my-board", "#my-score", "#my-nextBlock");
+
+        this.initSounds();
+    }
+
+    initSounds() {
+        let bufferSize = 10;
+        let actions = ["block-down", "gift-full-blocks", "erase-blocks"];
+
+        this.Sounds = new Map();
+
+        for (let i = 0; i < actions.length; i++) {
+            this.Sounds.set(actions[i], []);
+            for (let j = 0; j < bufferSize; j++) {
+                let audio = new Audio();
+                audio.src = "sound/" + actions[i] + ".mp3";
+                audio.pause();
+                this.Sounds.get(actions[i]).push(audio);
+            }
+        }
+    }
+
+    PlaySound(action) {
+        let sounds = this.Sounds.get(action);
+
+        for(let i=0; i<sounds.length; i++) {
+            if(sounds[i].paused) {
+                let playPromise = sounds[i].play();
+
+                // if (playPromise !== undefined) { playPromise.then((_) => {}).catch((error) => {
+                //     print(error);
+                // }); }
+                break;
+            }
+        }        
     }
 
     SetOwner(owner) {
@@ -261,141 +297,63 @@ function CreateGame() {
     window.Game = new Game();
     window.Game.Init();
 
-    LoadSound();
-
     $(document).keydown(function(e)
     {
         if(e.keyCode == 32) //space
         {
-            PlaySound("block-down");
+            window.Game.PlaySound("block-down");
             send("block-drop", "");
             e.preventDefault();
         }
         if (e.keyCode == 38) //up
         {
-            PlaySound("block-down");
+            window.Game.PlaySound("block-down");
             send("block-rotate", "");
             e.preventDefault();
         }
         if (e.keyCode == 37) //left
         {
-            PlaySound("block-down");
+            window.Game.PlaySound("block-down");
             send("block-left", "");
             e.preventDefault();
         }
         if(e.keyCode == 39) //Right
         {
-            PlaySound("block-down");
+            window.Game.PlaySound("block-down");
             send("block-right", "");
             e.preventDefault();
         }
         if(e.keyCode == 40) //Down
         {
-            PlaySound("block-down");
+            window.Game.PlaySound("block-down");
             send("block-down", "");
             e.preventDefault();
         }
     });
-/*
-    $("#game").on('touchstart',function(e){
 
-        if (!window.Game.myBoard.IsPlaying()) { return; }
-
-        let touch = e.originalEvent.changedTouches[0];
-
-        window.Game.touchX = touch.screenX;
-        window.Game.touchY = touch.screenY;
-    });
-
-    $("#game").on('touchend',function(e){
-
-        if (!window.Game.myBoard.IsPlaying()) { return; }
-
-        let touch = e.originalEvent.changedTouches[0];
-
-        x = touch.screenX;
-        y = touch.screenY;
-
-        if(window.Game.touchY-y>50){
-            print("to top");
-            e.originalEvent.preventDefault();
-        } else if(y-window.Game.touchY>50){
-            print("to bottom");
-            e.originalEvent.preventDefault();     
-        } else if(window.Game.touchX-x>50){
-            print("to left");
-            e.originalEvent.preventDefault();
-        }else if(x-window.Game.touchX>50){
-            print("to right");
-            e.originalEvent.preventDefault();
-        }
-    });
-*/
     $("#triangle-top").on('click', function(e) {
-        PlaySound("block-down");
+        window.Game.PlaySound("block-down");
         send("block-rotate", "");
         e.preventDefault();
     });
 
     $("#triangle-left").on('click', function(e) {
-        PlaySound("block-down");
+        window.Game.PlaySound("block-down");
         send("block-left", "");
         e.preventDefault();
     });
 
     $("#triangle-bottom").on('click', function(e) {
-        PlaySound("block-down");
+        window.Game.PlaySound("block-down");
         send("block-drop", "");
         e.preventDefault();
     });
 
     $("#triangle-right").on('click', function(e) {
-        PlaySound("block-down");
+        window.Game.PlaySound("block-down");
         send("block-right", "");
         e.preventDefault();
     });
-
-    /*
-    document.addEventListener('touchmove', function(e) {
-        if (window.Game.myBoard.IsPlaying()) {
-            let touch =  e.touches[0] || e.changedTouches[0];
-            
-            window.Game.touchStartX = touch.pageX;
-            window.Game.touchStartY = touch.pageY;
-        }
-    }, false);
-
-    document.addEventListener("touchend", function(e) {
-        if (window.Game.myBoard.IsPlaying()) {
-            let touch = e.touches[0] || e.changedTouches[0];
-            
-            let x = touch.pageX - window.Game.touchStartX;
-            let y = touch.pageY - window.Game.touchStartY;
-
-            print("touch.pageX:"+ touch.pageX + ", window.Game.touchStartX:" + window.Game.touchStartX);
-            print("touch.pageY:"+ touch.pageY + ", window.Game.touchStartY:" + window.Game.touchStartY);
-            print("x:" + x + ", y:" + y);
-
-            if (Math.abs(x) > Math.abs(y)) {
-                if (x > 0) {
-                    PlaySound("block-down");
-                    send("block-right", "");
-                } else {
-                    PlaySound("block-down");
-                    send("block-left", "");
-                }
-            } else {
-                if (y > 0) {
-                    PlaySound("block-down");
-                    send("block-drop", "");
-                } else {
-                    PlaySound("block-down");
-                    send("block-rotate", "");
-                }
-            }
-        }
-    }, false);
-    */
 }
 
 function DrawNextBlock(id, i, block) {
@@ -485,44 +443,4 @@ function DrawNextBlocks() {
     DrawNextBlock(board.nextBlockID, 0, board.nextBlocks[0]);
     DrawNextBlock(board.nextBlockID, 1, board.nextBlocks[1]);
     DrawNextBlock(board.nextBlockID, 2, board.nextBlocks[2]);
-}
-
-function newSounds(obj, file, size) {
-    obj = [];
-    
-    for(let i=0; i<size; i++) {
-        obj[i] = new Audio(file);
-        obj[i].pause();
-    }
-
-    return obj
-}
-
-function playSound(obj) {
-    for(let i=0; i<obj.length; i++) {
-        if(obj[i].paused) {
-            obj[i].play();
-            break;
-        }
-    }
-}
-
-function LoadSound() {
-    window.Game.sound1 = newSounds(window.Game.sound1, "sound/block-down.mp3", 10);
-    window.Game.sound2 = newSounds(window.Game.sound2, "sound/gift-full-blocks.mp3", 10);
-    window.Game.sound3 = newSounds(window.Game.sound3, "sound/erase-blocks.mp3", 10);
-}
-
-function PlaySound(action) {
-    switch(action) {
-        case "block-down":
-            playSound(window.Game.sound1);
-            break;
-        case "gift-full-blocks":
-            playSound(window.Game.sound2);
-            break;
-        case "erase-blocks":
-            playSound(window.Game.sound3);
-            break;
-    }
 }

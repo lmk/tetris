@@ -118,9 +118,6 @@ func SaveTopRank(nick string, score int) (int, error) {
 
 	if rank != -1 {
 		// 파일을 다시 쓴다.
-		Warning.Println("rank:", rank)
-		Warning.Println(buf)
-
 		file.Seek(0, 0)
 		_, err := file.WriteString(buf)
 		if err != nil {

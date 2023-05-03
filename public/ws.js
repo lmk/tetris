@@ -85,7 +85,7 @@ var messageHandler = function(msg) {
         $('#game').show();
         $('#roomId').text(msg.roomId);        
         $('#roomTitle').text(msg.roomList[0].title);
-        print(msg.roomList[0].owner + ',' + $('#my-nick').text())
+
         if (msg.roomList[0].owner == $('#my-nick').text()) {
           createStartButton();
         }
@@ -219,11 +219,11 @@ var messageHandler = function(msg) {
       break;
 
     case 'gift-full-blocks':
-      PlaySound(msg.action);
+      window.Game.PlaySound(msg.action);
       break;
 
     case 'erase-blocks':
-      PlaySound(msg.action);
+      window.Game.PlaySound(msg.action);
       break;
 
     default:
