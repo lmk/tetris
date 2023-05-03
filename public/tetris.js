@@ -261,6 +261,8 @@ function CreateGame() {
     window.Game = new Game();
     window.Game.Init();
 
+    LoadSound();
+
     $(document).keydown(function(e)
     {
         if(e.keyCode == 32) //space
@@ -485,10 +487,42 @@ function DrawNextBlocks() {
     DrawNextBlock(board.nextBlockID, 2, board.nextBlocks[2]);
 }
 
-function PlaySound(action) {
-    if (window.Game.sound != undefined) {
-        window.Game.sound.pause();
+function newSounds(obj, file, size) {
+    obj = [];
+    
+    for(let i=0; i<size; i++) {
+        obj[i] = new Audio(file);
+        obj[i].pause();
     }
-    window.Game.sound = new Audio("sound/" + action + ".mp3");
-    window.Game.sound.play();
+
+    return obj
+}
+
+function playSound(obj) {
+    for(let i=0; i<obj.length; i++) {
+        if(obj[i].paused) {
+            obj[i].play();
+            break;
+        }
+    }
+}
+
+function LoadSound() {
+    window.Game.sound1 = newSounds(window.Game.sound1, "sound/block-down.mp3", 10);
+    window.Game.sound2 = newSounds(window.Game.sound2, "sound/gift-full-blocks.mp3", 10);
+    window.Game.sound3 = newSounds(window.Game.sound3, "sound/erase-blocks.mp3", 10);
+}
+
+function PlaySound(action) {
+    switch(action) {
+        case "block-down":
+            playSound(window.Game.sound1);
+            break;
+        case "gift-full-blocks":
+            playSound(window.Game.sound2);
+            break;
+        case "erase-blocks":
+            playSound(window.Game.sound3);
+            break;
+    }
 }
