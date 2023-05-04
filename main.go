@@ -19,10 +19,12 @@ var conf Config
 func init() {
 	rand.Seed(time.Now().UnixNano())
 
+	gin.SetMode(gin.ReleaseMode)
+
 	// config
 	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
 	flag.IntVar(&conf.Port, "port", 8090, "port")
-	flag.BoolVar(&conf.IsDebug, "debug", false, "debug mode")
+	flag.BoolVar(&conf.Https, "https", true, "https mode")
 	flag.Usage = usage
 }
 
@@ -37,11 +39,11 @@ func runServer() {
 
 	r.LoadHTMLGlob("templates/*")
 
-	wsURI := fmt.Sprintf("ws://%s/ws", conf.Domain)
-	securityPolicy := "upgrade-insecure-requests"
-	if conf.IsDebug {
-		wsURI = fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port)
-		securityPolicy = ""
+	wsURI := fmt.Sprintf("ws://%s:%d/ws", conf.Domain, conf.Port)
+	securityPolicy := ""
+	if conf.Https {
+		wsURI = fmt.Sprintf("ws://%s/ws", conf.Domain)
+		securityPolicy = "upgrade-insecure-requests"
 	}
 
 	r.GET("/", func(c *gin.Context) {

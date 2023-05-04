@@ -12,7 +12,7 @@ type Config struct {
 	ConfigFile string `yaml:"-"`
 	Domain     string `yaml:"domain,omitempty"`
 	Port       int    `yaml:"port,omitempty"`
-	IsDebug    bool   `yaml:"debug,omitempty"`
+	Https      bool   `yaml:"https,omitempty"`
 }
 
 func (c *Config) Read(fn string) error {

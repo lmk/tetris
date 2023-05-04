@@ -253,6 +253,7 @@ func (wss *WebsocketServer) startGame(msg *Message) {
 	}
 }
 
+// actionGame 게임 동작 처리: "block-drop", "block-rotate", "block-left", "block-right", "block-down"
 func (wss *WebsocketServer) actionGame(msg *Message) {
 	game := Manager.getGame(msg.Sender)
 	if game == nil {

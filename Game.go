@@ -327,7 +327,6 @@ func (g *Game) nextTern() bool {
 	if !g.isSafeNewBlock() {
 		g.gameOver()
 		g.SendGameOver()
-		Trace.Print("nextTern")
 		return false
 	}
 	g.firstNextToCurrnetBlock()
