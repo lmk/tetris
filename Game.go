@@ -411,13 +411,8 @@ func (g *Game) gameOver() {
 	g.State = "over"
 }
 
-func (g *Game) observer() {
+func (g *Game) setObserver() {
 	g.State = "observer"
-}
-
-// Action : 게임에 메시지를 전달한다.
-func (g *Game) Action(msg *Message) {
-	g.Ch <- msg
 }
 
 // Stop : 게임을 종료시킨다.
@@ -448,6 +443,15 @@ func (g *Game) run() {
 	for !g.IsGameOver() {
 		msg := <-g.Ch
 		switch msg.Action {
+		case "start-game":
+			g.Start()
+
+		case "stop-game":
+			g.Stop()
+
+		case "observer":
+			g.setObserver()
+
 		case "block-rotate":
 			g.toRotate()
 			g.SendSyncGame()

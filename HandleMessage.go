@@ -130,7 +130,7 @@ func (wss *WebsocketServer) InRoom(roomId int, nick string) bool {
 
 	// 이미 play 중이면 옵져버 상태로 설정
 	if wss.rooms[roomId].GetState() == "playing" {
-		player.Client.Game.observer()
+		player.Client.Game.Ch <- &Message{Action: "observer"}
 	}
 
 	return true
@@ -199,7 +199,9 @@ func (wss *WebsocketServer) leaveRoom(msg *Message) {
 
 	// 게임 중이면 종료
 	if client.Game.IsPlaying() {
-		client.Game.Stop()
+		client.Game.Ch <- &Message{
+			Action: "stop-game",
+		}
 	}
 
 	// 방에서 나가기
@@ -249,7 +251,7 @@ func (wss *WebsocketServer) listRank(msg *Message) {
 
 func (wss *WebsocketServer) startGame(msg *Message) {
 	for _, client := range wss.rooms[msg.RoomId].Clients {
-		client.Game.Start()
+		client.Game.Ch <- msg
 	}
 }
 
@@ -266,7 +268,14 @@ func (wss *WebsocketServer) actionGame(msg *Message) {
 		return
 	}
 
-	game.Action(msg)
+	game.Ch <- msg
+}
+
+// addBot 봇 추가
+func (wss *WebsocketServer) addBot(msg *Message) {
+	// BotFather에게 봇 추가 요청
+	BotFather.fromManager <- msg
+
 }
 
 // HandleMessage websocket clinet -> server의 메시지를 처리한다.
@@ -300,6 +309,9 @@ func (wss *WebsocketServer) HandleMessage(msg *Message) {
 
 	case "block-drop", "block-rotate", "block-left", "block-right", "block-down":
 		wss.actionGame(msg)
+
+	case "add-bot":
+		wss.addBot(msg)
 
 	default:
 		Warning.Println("Unknown Action:", msg)

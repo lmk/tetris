@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
@@ -16,7 +16,7 @@ type Config struct {
 }
 
 func (c *Config) Read(fn string) error {
-	buf, err := ioutil.ReadFile(fn)
+	buf, err := os.ReadFile(fn)
 	if err != nil {
 		return fmt.Errorf("cannot read config %s: %v", fn, err)
 	}
