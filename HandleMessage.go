@@ -43,9 +43,9 @@ func (wss *WebsocketServer) setNick(msg *Message) {
 
 	// nick 중복 체크
 	for _, room := range wss.rooms {
-		for nick, client := range room.Clients {
+		for nick := range room.Clients {
 			if nick == msg.Data {
-				client.send <- &Message{Action: "error", Data: "nick duplicate"}
+				Manager.players[msg.Sender].Client.send <- &Message{Action: "error", Data: "nick duplicate"}
 				return
 			}
 		}
