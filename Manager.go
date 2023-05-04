@@ -146,6 +146,11 @@ func (gm *manager) overGame(msg *Message) {
 func (gm *manager) endGame(nick string) {
 	if player, ok := gm.players[nick]; ok {
 
+		if player.Client.Game == nil {
+			Warning.Println(nick, "Game is nil")
+			return
+		}
+
 		player.Client.Game.Stop()
 
 		// 승자에게 플레이어수 x 100점 추가
