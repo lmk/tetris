@@ -454,15 +454,15 @@ func (g *Game) run() {
 
 		case "block-rotate":
 			g.toRotate()
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "block-left":
 			g.toLeft()
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "block-right":
 			g.toRight()
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "block-down":
 			if !g.toDown() {
@@ -470,7 +470,7 @@ func (g *Game) run() {
 					return
 				}
 			}
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "block-drop":
 			if !g.toDrop() {
@@ -482,7 +482,7 @@ func (g *Game) run() {
 			if !g.nextTern() {
 				return
 			}
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "gift-full-blocks":
 			if !g.receiveFullBlocks(msg.Cells) {
@@ -492,13 +492,13 @@ func (g *Game) run() {
 				Trace.Print("gift-full-blocks")
 				return
 			}
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		case "auto-down":
 			if !g.toDown() && !g.nextTern() {
 				return
 			}
-			g.SendSyncGame()
+			g.SendSyncGame(msg.Action)
 
 		}
 	}
@@ -555,10 +555,11 @@ func (g *Game) SendStartGame() {
 	}
 }
 
-func (g *Game) SendSyncGame() {
+func (g *Game) SendSyncGame(data string) {
 	g.ManagerCh <- &Message{
 		Action:       "sync-game",
 		Sender:       g.Owner,
+		Data:         data,
 		BlockIndexs:  g.NextBlockIndexs,
 		Cells:        g.Cell,
 		CurrentBlock: g.CurrentBlock,
