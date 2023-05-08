@@ -493,8 +493,14 @@ func (g *Game) run() {
 				return
 			}
 			g.SendSyncGame()
-		}
 
+		case "auto-down":
+			if !g.toDown() && !g.nextTern() {
+				return
+			}
+			g.SendSyncGame()
+
+		}
 	}
 
 	Trace.Println("run game over")
@@ -502,12 +508,9 @@ func (g *Game) run() {
 
 func (g *Game) autoDown() {
 	for !g.IsGameOver() {
-		Info.Println("autoDown", g.CycleMs, time.Now())
-		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
-		if !g.toDown() && !g.nextTern() {
-			return
+		g.Ch <- &Message{
+			Action: "auto-down",
 		}
-		g.SendSyncGame()
 
 		// Faster every minute
 		duration := time.Since(g.DurationTime)
