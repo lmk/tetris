@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 const (
 	LEVEL_BIGINER       = "beginer"
 	LEVEL_FAST_FINGER   = "fast-finger"
@@ -14,10 +16,14 @@ type Bot struct {
 
 	Cell            [][]int
 	NextBlockIndexs []int
+	x, y            int // for current block
+	CurrentBlock    *Block
 
-	bot BotEngine
+	botEngine BotEngine
 
 	state string
+
+	timer *time.Timer
 }
 
 type BotEngine interface {
@@ -31,11 +37,13 @@ func NewBot(level string, ba *BotAdapter) *Bot {
 		level:      level,
 		botAdapter: ba,
 		state:      "ready",
+		x:          BOARD_CENTER,
+		y:          0,
 	}
 
 	switch bi.level {
 	case LEVEL_BIGINER:
-		bi.bot = NewBotBigenner()
+		bi.botEngine = NewBotBigenner(bi)
 	}
 
 	return bi
@@ -46,21 +54,50 @@ func (b *Bot) startGame(msg *Message) {
 	b.NextBlockIndexs = msg.BlockIndexs
 
 	b.state = "start"
-}
 
-func (b *Bot) run() {
-	for b.state != "end" {
-		msg := <-b.botAdapter.toBot
-		switch msg.Action {
-		case "start-game":
-			b.startGame(msg)
+	b.timer = time.NewTimer(time.Duration(b.botEngine.getCycle()) * time.Millisecond)
 
-		case "gift-full-blocks":
-
-		}
-	}
+	b.CurrentBlock = msg.CurrentBlock
 }
 
 func (b *Bot) end() {
 	b.state = "end"
+}
+
+func (b *Bot) syncGame(msg *Message) {
+	if b.state != "start" || msg.Sender != b.botAdapter.nick {
+		return
+	}
+
+	b.Cell = msg.Cells
+	b.NextBlockIndexs = msg.BlockIndexs
+	b.CurrentBlock = msg.CurrentBlock
+}
+
+func (b *Bot) run() {
+	for b.state != "end" {
+		select {
+		case msg := <-b.botAdapter.toBot:
+			switch msg.Action {
+			case "start-game":
+				b.startGame(msg)
+
+			case "sync-game":
+				b.syncGame(msg)
+
+			case "gift-full-blocks":
+				// 처리가 필요할까?
+
+			case "over-game":
+				b.end()
+			}
+
+		case <-b.timer.C:
+			b.botAdapter.fromBot <- &Message{
+				Action: b.botEngine.getNextAction(),
+				Sender: b.botAdapter.nick,
+			}
+		}
+
+	}
 }

@@ -65,6 +65,8 @@ func (b *Block) Clone(from *Block) {
 	b.Shape = CloneShape(from.Shape)
 }
 
+// NewBlock
+// shapeIndex : 1 ~ 7
 func NewBlock(shapeIndex int) *Block {
 	block := Block{
 		Row:        0,

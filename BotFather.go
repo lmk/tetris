@@ -37,13 +37,15 @@ func (bf *botFather) addBot(msg *Message) {
 
 }
 
+// bot 에게 받은 메시지를 Manager 에게 전달한다.
+// Manager에게 받은 메시지를 bot 에게 전달한다.
 func (bf *botFather) run() {
 	for {
 		select {
 		case msg := <-bf.fromBot:
 			switch msg.Action {
 			case "block-drop", "block-rotate", "block-left", "block-right", "block-down":
-				// send to manager
+				// TODO: send to manager
 			}
 
 		case msg := <-bf.fromManager:
