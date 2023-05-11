@@ -16,8 +16,8 @@ func init() {
 func newBotFather() *botFather {
 	return &botFather{
 		botList:     make(map[*Bot]int),
-		fromBot:     make(chan *Message),
-		fromManager: make(chan *Message),
+		fromBot:     make(chan *Message, MAX_CHAN),
+		fromManager: make(chan *Message, MAX_CHAN),
 	}
 }
 
@@ -32,9 +32,6 @@ func (bf *botFather) addBot(msg *Message) {
 	// new bot
 	bot := NewBot(msg.Data, botAdapter)
 	bf.botList[bot] = msg.RoomId
-
-	go bot.run()
-
 }
 
 // bot 에게 받은 메시지를 Manager 에게 전달한다.
@@ -42,13 +39,23 @@ func (bf *botFather) addBot(msg *Message) {
 func (bf *botFather) run() {
 	for {
 		select {
-		case msg := <-bf.fromBot:
+		case msg, ok := <-bf.fromBot:
+			if !ok {
+				Error.Println("run", "fromBot channel closed")
+				return
+			}
+
 			switch msg.Action {
 			case "block-drop", "block-rotate", "block-left", "block-right", "block-down":
 				// TODO: send to manager
 			}
 
-		case msg := <-bf.fromManager:
+		case msg, ok := <-bf.fromManager:
+			if !ok {
+				Error.Println("run", "fromManager channel closed")
+				return
+			}
+
 			switch msg.Action {
 			case "add-bot":
 				bf.addBot(msg)

@@ -35,7 +35,7 @@ type Game struct {
 func NewGame(ch chan *Message, owner string) *Game {
 	game := Game{
 		Owner:        owner,
-		Ch:           make(chan *Message),
+		Ch:           make(chan *Message, MAX_CHAN),
 		ManagerCh:    ch,
 		State:        "ready",
 		Score:        0,
@@ -441,10 +441,16 @@ func (g *Game) Start() {
 func (g *Game) run() {
 
 	for !g.IsGameOver() {
-		msg := <-g.Ch
+		msg, ok := <-g.Ch
+		if !ok {
+			Error.Println("channel closed")
+			return
+		}
+
+		Trace.Println("run game", g.Owner, msg)
 		switch msg.Action {
-		case "start-game":
-			g.Start()
+		// case "start-game":
+		// 	g.Start()
 
 		case "stop-game":
 			g.Stop()
@@ -498,7 +504,9 @@ func (g *Game) run() {
 			if !g.toDown() && !g.nextTern() {
 				return
 			}
+			Trace.Print("auto-down s ", g.Owner, len(g.ManagerCh))
 			g.SendSyncGame(msg.Action)
+			Trace.Print("auto-down e ", g.Owner)
 
 		}
 	}
@@ -508,9 +516,14 @@ func (g *Game) run() {
 
 func (g *Game) autoDown() {
 	for !g.IsGameOver() {
+
+		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
+
+		Trace.Print("autoDown s:", g.Owner, len(g.Ch))
 		g.Ch <- &Message{
 			Action: "auto-down",
 		}
+		Trace.Print("autoDown e:", g.Owner, len(g.Ch))
 
 		// Faster every minute
 		duration := time.Since(g.DurationTime)
@@ -518,7 +531,6 @@ func (g *Game) autoDown() {
 			g.CycleMs -= 100
 			g.DurationTime = time.Now()
 		}
-
 	}
 	Trace.Println("autoDown game over")
 }

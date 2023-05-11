@@ -6,6 +6,7 @@
 - preview
 - multi play
 - change nick
+- rank
 
 ## TODO
 
@@ -15,4 +16,13 @@
   - attacker2: 두블럭씩 쌓아서 공격
   - attacker3: 세블럭씩 쌓아서 공격
   - attacker half: 보드의 반을 쌓아서 공격
-  
+
+## flow
+
+### call
+
+user - html/js - WebsocketServer - HandleMessage - Manager - Game
+
+bot - BotAdapter - WebsocketServer - HandleMessage - Manager - Game
+
+### sequence

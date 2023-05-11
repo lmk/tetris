@@ -29,9 +29,9 @@ func NewWebsocketServer() *WebsocketServer {
 	// 웹 소켓 서버를 생성한다.
 	return &WebsocketServer{
 		rooms:      make(map[int]*RoomInfo),
-		broadcast:  make(chan *Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		broadcast:  make(chan *Message, MAX_CHAN),
+		register:   make(chan *Client, MAX_CHAN),
+		unregister: make(chan *Client, MAX_CHAN),
 	}
 }
 

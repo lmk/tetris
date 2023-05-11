@@ -1,18 +1,3 @@
-// 게임 화면 안에 시작 버튼 생성
-function createStartButton() {
-    if ($('#startButton').length != 0) return;
-
-    let button = $('<button id="startButton" class="btn btn-primary"/>')
-                    .text('START')
-                    .click(function() {
-                        send("start-game", "");
-
-                        // delete button
-                        $('#startButton').remove();
-                    });
-    $('#startButtonArea').append(button);
-}
-
 class Game {
 
     row = 15;
@@ -444,3 +429,38 @@ function DrawNextBlocks() {
     DrawNextBlock(board.nextBlockID, 1, board.nextBlocks[1]);
     DrawNextBlock(board.nextBlockID, 2, board.nextBlocks[2]);
 }
+
+// 게임 화면 안에 시작 버튼 생성
+function createStartButton() {
+    if ($('#startButton').length != 0) return;
+
+    let button = $('<button id="startButton" class="btn btn-primary"/>')
+                    .text('START')
+                    .click(function() {
+                        send("start-game", "");
+
+                        // delete button
+                        $('#startButtonArea').html('');
+                    });
+    $('#startButtonArea').append(button);
+}
+
+function createAddBotButton() {
+    if ($('#addBotButton').length != 0) return;
+
+    let button = $('<select class="form-select" id="botLevel" aria-label="Disabled select" disabled>'
+        +'<option value="beginner" selected>beginner</option>'
+        +'<option value="fast-finger">fast-finger</option>'
+        +'<option value="attacker2">attacker2</option>'
+        +'<option value="attacker3">attacker3</option>'
+        +'<option value="attacker-half">attacker-half</option>'
+        +'</select>')
+    $('#startButtonArea').append(button);
+
+    button = $('<button id="addBotButton" class="btn btn-success"/>')
+                    .text('Add Bot')
+                    .click(function() {
+                        send("add-bot", $('#botLevel').val());
+                    });
+    $('#startButtonArea').append(button);
+}   

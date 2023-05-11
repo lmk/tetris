@@ -16,6 +16,10 @@ import (
 
 var conf Config
 
+const (
+	MAX_CHAN = 10
+)
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 

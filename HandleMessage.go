@@ -251,7 +251,7 @@ func (wss *WebsocketServer) listRank(msg *Message) {
 
 func (wss *WebsocketServer) startGame(msg *Message) {
 	for _, client := range wss.rooms[msg.RoomId].Clients {
-		client.Game.Ch <- msg
+		client.Game.Start()
 	}
 }
 
@@ -267,8 +267,9 @@ func (wss *WebsocketServer) actionGame(msg *Message) {
 		Warning.Println("Not playing:", msg.Sender)
 		return
 	}
-
+	Trace.Println("actionGame s:", msg.Action, msg.Sender, len(game.Ch))
 	game.Ch <- msg
+	Trace.Println("actionGame e:", msg.Action, msg.Sender)
 }
 
 // addBot 봇 추가

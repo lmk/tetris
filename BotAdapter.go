@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -24,11 +26,10 @@ func NewBotAdapter(roomId int) *BotAdapter {
 		Error.Println("connect:", err)
 		return nil
 	}
-	defer conn.Close()
 
 	botAdapter := &BotAdapter{
-		toBot:   make(chan *Message),
-		fromBot: make(chan *Message),
+		toBot:   make(chan *Message, MAX_CHAN),
+		fromBot: make(chan *Message, MAX_CHAN),
 		done:    make(chan struct{}),
 		roomId:  roomId,
 		socket:  conn,
@@ -43,24 +44,46 @@ func NewBotAdapter(roomId int) *BotAdapter {
 	return botAdapter
 }
 
-// newNick : nick을 받으면 방에 입장한다.
+// newNick :
 func (ba *BotAdapter) newNick(msg *Message) {
 	ba.nick = msg.Data
-	ba.socket.WriteJSON(&Message{
-		Action: "join-room",
-		Data:   fmt.Sprintf("%d", ba.roomId),
-		Sender: ba.nick,
-	})
+
+	// nick을 bot으로 변경한다.
+	go func() {
+		<-time.NewTimer(500 * time.Millisecond).C
+		ba.socket.WriteJSON(&Message{
+			Action: "set-nick",
+			Data:   strings.Replace(ba.nick, "user", "bot", 1),
+			Sender: ba.nick,
+		})
+	}()
+
+	// room에 join 한다.
+	go func() {
+		<-time.NewTimer(1 * time.Second).C
+		ba.socket.WriteJSON(&Message{
+			Action: "join-room",
+			Data:   fmt.Sprintf("%d", ba.roomId),
+			Sender: ba.nick,
+		})
+	}()
+
+}
+
+func (ba *BotAdapter) startGame(msg *Message) {
+	ba.toBot <- msg
 }
 
 // Read : server -> bot
 func (ba *BotAdapter) Read() {
 	defer close(ba.done)
 	for {
+
 		var msg Message
 		err := ba.socket.ReadJSON(&msg)
 		if err != nil {
 			Error.Println("websocket handelr read:", err)
+			ba.socket.Close()
 			return
 		}
 
@@ -68,7 +91,15 @@ func (ba *BotAdapter) Read() {
 		case "new-nick":
 			ba.newNick(&msg)
 
+		case "set-nick":
+			if msg.Sender == ba.nick {
+				ba.nick = msg.Data
+			}
+
 		case "start-game":
+			ba.startGame(&msg)
+
+		default:
 			ba.toBot <- &msg
 		}
 	}
@@ -80,7 +111,12 @@ func (ba *BotAdapter) Write() {
 		select {
 		case <-ba.done:
 			return
-		case msg := <-ba.fromBot:
+		case msg, ok := <-ba.fromBot:
+			if !ok {
+				Error.Println("websocket handelr write:", ba.nick, "channel closed")
+				return
+			}
+
 			err := ba.socket.WriteJSON(msg)
 			if err != nil {
 				Error.Println("websocket handelr write:", err)

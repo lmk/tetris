@@ -24,7 +24,7 @@ func init() {
 func newGameManager() *manager {
 	return &manager{
 		players: make(map[string]*Player),
-		ch:      make(chan *Message),
+		ch:      make(chan *Message, MAX_CHAN),
 	}
 }
 
@@ -66,7 +66,12 @@ func (gm *manager) NewGame(roomId int, client *Client) *Game {
 
 func (gm *manager) run() {
 	for {
-		msg := <-gm.ch
+		msg, ok := <-gm.ch
+		if !ok {
+			Error.Println("run", "channel closed")
+			return
+		}
+
 		gm.HandleMessage(msg)
 
 		//time.Sleep(1 * time.Millisecond)
@@ -203,7 +208,7 @@ func (gm *manager) giftFullBlocks(msg *Message) {
 
 		// 방안의 사용자들에게 full block을 전달한다.
 		for _, client := range player.Client.ws.rooms[player.RoomId].Clients {
-			if client.Game != nil && client.Game.IsPlaying() && client.Nick != msg.Sender {
+			if client.Game != nil && client.Nick != msg.Sender && client.Game.IsPlaying() {
 				client.Game.Ch <- msg
 			}
 		}

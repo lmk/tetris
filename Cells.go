@@ -134,14 +134,14 @@ func TrimShape(cells [][]int) ([][]int, Margin) {
 }
 
 // cells의 가장 낮은 셀의 x좌표를 반환한다.
-func findLowest(cells [][]int) int {
+func findLowest(cells [][]int, v int) int {
 
 	col := 0
 	row := 0
 
 	for y := len(cells) - 1; y >= 0; y-- {
 		for x := 0; x < len(cells[0]); x++ {
-			if cells[y][x] == 1 && row < y {
+			if cells[y][x] == v && row < y {
 				row = y
 				col = x
 			}
@@ -149,4 +149,58 @@ func findLowest(cells [][]int) int {
 	}
 
 	return col
+}
+
+// cell을 위로 이동했을때 막히는 cell을 채워준다.
+func fillTailToUp(cells [][]int) [][]int {
+
+	// copy
+	tailed := make([][]int, len(cells))
+	for i := range tailed {
+		tailed[i] = make([]int, len(cells[0]))
+		copy(tailed[i], cells[i])
+	}
+
+	for x := 0; x < len(tailed[0]); x++ {
+		sy := len(tailed)
+		for y := 0; y < len(tailed); y++ {
+			if tailed[y][x] == 1 {
+				sy = y
+				break
+			}
+		}
+
+		for y := sy; y < len(tailed); y++ {
+			tailed[y][x] = 1
+		}
+	}
+
+	return tailed
+}
+
+// cell을 아래 이동했을때 막히는 cell을 채워준다.
+func fillTailToDown(cells [][]int) [][]int {
+
+	// copy
+	tailed := make([][]int, len(cells))
+	for i := range tailed {
+		tailed[i] = make([]int, len(cells[0]))
+		copy(tailed[i], cells[i])
+	}
+
+	for x := 0; x < len(tailed[0]); x++ {
+		sy := 0
+		for y := len(tailed) - 1; y >= 0; y-- {
+			if tailed[y][x] == 1 {
+				sy = y
+				break
+			}
+		}
+
+		for y := sy - 1; y >= 0; y-- {
+			tailed[y][x] = 1
+		}
+	}
+
+	return tailed
 }

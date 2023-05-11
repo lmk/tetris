@@ -88,6 +88,7 @@ var messageHandler = function(msg) {
 
         if (msg.roomList[0].owner == $('#my-nick').text()) {
           createStartButton();
+          createAddBotButton();
         }
       }
 
@@ -119,6 +120,7 @@ var messageHandler = function(msg) {
 
       if (msg.roomId != 0 && msg.roomList[0].owner == $('#my-nick').text() && msg.roomList[0].state == 'ready') {
         createStartButton();
+        createAddBotButton();
       }
       break;
 
@@ -150,6 +152,7 @@ var messageHandler = function(msg) {
 
         if (msg.roomList[0].owner == $('#my-nick').text()) {
           createStartButton();
+          createAddBotButton();
         }
       } else {
         window.Game.GameOver(msg.sender);
@@ -167,11 +170,13 @@ var messageHandler = function(msg) {
         $('#modal-over-game').modal('hide');
         $('#modal-winner').modal('show');
       } else {
+        $('#modal-over-game').modal('show');
         window.Game.GameOver(msg.sender);
       }
 
       if (msg.roomList[0].owner == $('#my-nick').text()) {
         createStartButton();
+        createAddBotButton();
       }      
       break;
 

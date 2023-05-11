@@ -23,7 +23,7 @@ func NewClient(conn *websocket.Conn, ws *WebsocketServer) *Client {
 		Nick:   getRandomNick(),
 		socket: conn,
 		ws:     ws,
-		send:   make(chan *Message),
+		send:   make(chan *Message, MAX_CHAN),
 		Game:   nil,
 	}
 }

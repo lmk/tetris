@@ -3,7 +3,7 @@ package main
 import "time"
 
 const (
-	LEVEL_BIGINER       = "beginer"
+	LEVEL_BIGINER       = "beginner"
 	LEVEL_FAST_FINGER   = "fast-finger"
 	LEVEL_ATTACKER2     = "attacker2"
 	LEVEL_ATTACKER3     = "attacker3"
@@ -22,18 +22,17 @@ type Bot struct {
 	botEngine BotEngine
 
 	state string
-
-	timer *time.Timer
 }
 
 type BotEngine interface {
+	init()
 	getNextAction() string
 	getCycle() int
 }
 
 func NewBot(level string, ba *BotAdapter) *Bot {
 
-	bi := &Bot{
+	bot := &Bot{
 		level:      level,
 		botAdapter: ba,
 		state:      "ready",
@@ -41,12 +40,14 @@ func NewBot(level string, ba *BotAdapter) *Bot {
 		y:          0,
 	}
 
-	switch bi.level {
+	switch bot.level {
 	case LEVEL_BIGINER:
-		bi.botEngine = NewBotBigenner(bi)
+		bot.botEngine = NewBotBigenner(bot)
 	}
 
-	return bi
+	go bot.runMsgHandler()
+
+	return bot
 }
 
 func (b *Bot) startGame(msg *Message) {
@@ -54,10 +55,11 @@ func (b *Bot) startGame(msg *Message) {
 	b.NextBlockIndexs = msg.BlockIndexs
 
 	b.state = "start"
-
-	b.timer = time.NewTimer(time.Duration(b.botEngine.getCycle()) * time.Millisecond)
-
 	b.CurrentBlock = msg.CurrentBlock
+
+	b.botEngine.init()
+
+	go b.runActionLoop()
 }
 
 func (b *Bot) end() {
@@ -74,30 +76,63 @@ func (b *Bot) syncGame(msg *Message) {
 	b.CurrentBlock = msg.CurrentBlock
 }
 
-func (b *Bot) run() {
-	for b.state != "end" {
-		select {
-		case msg := <-b.botAdapter.toBot:
-			switch msg.Action {
-			case "start-game":
-				b.startGame(msg)
+func (b *Bot) leaveRoom(msg *Message) bool {
 
-			case "sync-game":
-				b.syncGame(msg)
+	b.end()
 
-			case "gift-full-blocks":
-				// 처리가 필요할까?
-
-			case "over-game":
-				b.end()
-			}
-
-		case <-b.timer.C:
-			b.botAdapter.fromBot <- &Message{
-				Action: b.botEngine.getNextAction(),
-				Sender: b.botAdapter.nick,
-			}
+	if msg.RoomList[0].Owner == b.botAdapter.nick {
+		b.botAdapter.fromBot <- &Message{
+			Action: "leave-room",
+			RoomId: msg.RoomId,
+			Sender: b.botAdapter.nick,
 		}
 
+		return true
+	}
+
+	return false
+}
+
+func (b *Bot) runMsgHandler() {
+
+	for {
+
+		msg, ok := <-b.botAdapter.toBot
+		if !ok {
+			Error.Println("runMsgHandler", b.botAdapter.nick, "channel closed")
+			return
+		}
+		Trace.Println("runMsgHandler", b.botAdapter.nick, msg.Action)
+
+		switch msg.Action {
+		case "start-game":
+			b.startGame(msg)
+
+		case "sync-game":
+			b.syncGame(msg)
+
+		case "gift-full-blocks":
+			// 처리가 필요할까?
+
+		case "over-game":
+			b.end()
+
+		case "leave-room":
+			if b.leaveRoom(msg) {
+				return
+			}
+		}
+	}
+}
+
+func (b *Bot) runActionLoop() {
+	for b.state != "end" {
+
+		time.Sleep(time.Millisecond * time.Duration(b.botEngine.getCycle()))
+
+		b.botAdapter.fromBot <- &Message{
+			Action: b.botEngine.getNextAction(),
+			Sender: b.botAdapter.nick,
+		}
 	}
 }
