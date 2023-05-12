@@ -1,7 +1,7 @@
 package main
 
 const (
-	NEED_FIND int = -999
+	NOT_FOUND int = -999
 )
 
 // BotBigenner
@@ -19,86 +19,92 @@ func NewBotBigenner(bot *Bot) *BotBigenner {
 	return &BotBigenner{
 		cycle:         1600,
 		bot:           bot,
-		incX:          NEED_FIND,
+		incX:          NOT_FOUND,
 		incRotate:     0,
-		cycleMoving:   100,
-		cycleThinking: 900,
+		cycleMoving:   200,
+		cycleThinking: 1500,
 	}
 }
 
 func (b *BotBigenner) init() {
 	b.cycle = 1600
-	b.incX = NEED_FIND
+	b.incX = NOT_FOUND
 	b.incRotate = 0
 }
 
 // cells의 모양에 맞는 x 좌표를 찾는다.
-func (b *BotBigenner) findCombine(cells [][]int, m *Margin) (int, int) {
+func (b *BotBigenner) findCombine(cells [][]int, board [][]int) (int, int) {
 
-	// drop 했을때 막히는 cell을 채워준다.
-	board := fillTailToUp(b.bot.Cell)
-	cells = fillTailToDown(cells)
-
-	for r := BOARD_ROW - len(cells); r > b.bot.CurrentBlock.Row+m.Bottom; r-- {
-		for c := 0; c < BOARD_COLUMN-len(cells[0])+m.Right; c++ {
+	for r := BOARD_ROW - len(cells); r >= 0; r-- {
+		for c := 0; c <= BOARD_COLUMN-len(cells[0]); c++ {
 			if CanCombine(cells, board, c, r) {
-				if b.bot.CurrentBlock.Col > c {
-					return c, r
-				}
-
-				return c + m.Left, r
+				return c, r
 			}
 		}
 	}
 
-	return -1, -1
+	return NOT_FOUND, -1
 }
 
 func (b *BotBigenner) findXforDown() {
+
+	// drop 했을때 막히는 cell을 채워준다.
+	board := fillTailToUp(b.bot.Cell)
+	Trace.Print("board\n", cellsToString(board))
 
 	var block Block
 	block.Clone(b.bot.CurrentBlock)
 
 	// block 모양에 맞는 가장 낮은 위치를 찾는다.
-	xBest := -1
+	incX := NOT_FOUND
 	yBest := -1
 	rotateBest := 0
 	for rotate := 0; rotate < 4; rotate++ {
 
 		trimed, margin := TrimShape(block.Shape)
+		trimed = fillTailToDown(trimed)
 
-		x, y := b.findCombine(trimed, &margin)
-		if x != -1 && yBest < y {
-			xBest = x
-			yBest = y
+		Trace.Printf("block %d, %d\n%s", block.Col, block.Row, cellsToString(trimed))
+		Trace.Println("margin:", margin)
+
+		x, y := b.findCombine(trimed, board)
+		if x != NOT_FOUND && yBest < y+len(trimed) {
+			incX = x - b.bot.CurrentBlock.Col - margin.Left
+			yBest = y + len(trimed)
 			rotateBest = rotate
 		}
+
+		Trace.Println("x, y, rotate, currentX:", x, y, rotate, block.Col)
 
 		block.Rotate()
 	}
 
 	// 찾지 못하면
-	if xBest == -1 {
+	if incX == NOT_FOUND {
 		// board의 가장 낮은 곳을 찾는다.
-		bx := findLowest(b.bot.Cell, 0)
+		bx := findLowest(board, 0)
 
 		// block의 가장 낮은 곳을 찾는다.
 		cx := findLowest(b.bot.CurrentBlock.Shape, 1)
 
-		xBest = bx - cx
+		incX = bx - cx
+
+		Trace.Println("not found bx, cx, xBest :", bx, cx, incX)
 
 		rotateBest = 0
 	}
 
-	b.incX = xBest - block.Col
+	b.incX = incX
 	b.incRotate = rotateBest
+
+	Trace.Println("incX, incRotate :", b.incX, b.incRotate)
 }
 
 func (b *BotBigenner) getNextAction() string {
 
 	action := ""
 
-	if b.incX == NEED_FIND {
+	if b.incX == NOT_FOUND {
 		// down 할 위치를 찾는다.
 		b.findXforDown()
 
@@ -117,7 +123,7 @@ func (b *BotBigenner) getNextAction() string {
 	} else if b.incX == 0 {
 		// col에 도착하면 down 한다.
 		// cycle을 *2로 늘린다.
-		b.incX = NEED_FIND
+		b.incX = NOT_FOUND
 		b.cycle = b.cycleThinking
 
 		action = "block-drop"

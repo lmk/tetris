@@ -63,11 +63,14 @@ func CanCombine(cells1, cells2 [][]int, offsetX, offsetY int) bool {
 
 	for y := 0; y < len(cells1); y++ {
 		for x := 0; x < len(cells1[0]); x++ {
-			if cells1[y][x] == cells2[y+offsetY][x+offsetX] {
+			if (cells1[y][x] != 0 && cells2[y+offsetY][x+offsetX] != 0) || (cells1[y][x] == 0 && cells2[y+offsetY][x+offsetX] == 0) {
+				Trace.Printf("CanCombine false y:%d x:%d y+offsetY:%d x+offsetX:%d", y, x, y+offsetY, x+offsetX)
 				return false
 			}
 		}
 	}
+
+	Trace.Printf("CanCombine true")
 
 	return true
 }
@@ -203,4 +206,14 @@ func fillTailToDown(cells [][]int) [][]int {
 	}
 
 	return tailed
+}
+
+func cellsToString(cells [][]int) string {
+
+	ret := ""
+	for _, row := range cells {
+		ret += fmt.Sprintf("%v\n", row)
+	}
+
+	return ret
 }
