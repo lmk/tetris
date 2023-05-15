@@ -139,7 +139,9 @@ var messageHandler = function(msg) {
       
     case 'over-game':
 
-      $('.triangle-container').hide();
+      if (msg.sender == $('#my-nick').text()) {
+        $('.triangle-container').hide();
+      }
 
       if (msg.sender == $('#my-nick').text() && window.Game.myBoard.IsPlaying()) {
 
@@ -150,10 +152,6 @@ var messageHandler = function(msg) {
 
         $('#modal-over-game').modal('show');
 
-        if (msg.roomList[0].owner == $('#my-nick').text()) {
-          createStartButton();
-          createAddBotButton();
-        }
       } else {
         window.Game.GameOver(msg.sender);
       }
@@ -284,7 +282,19 @@ window.onload = function() {
     $.cookie('nick', $('#newNick').val(), { expires: 30 });
   });
 
+  $(document).on("touchstart", function(e) {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  });
 
+  $(document).on("touchend", function(e) {
+    let now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+      e.preventDefault();
+    }
+    lastTouchEnd = now;
+  });
 }
 
 

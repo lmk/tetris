@@ -34,6 +34,26 @@ func (bf *botFather) addBot(msg *Message) {
 	bf.botList[bot] = msg.RoomId
 }
 
+func (bf *botFather) deleteBot(msg *Message) {
+
+	// find bot
+	var bot *Bot
+	for b := range bf.botList {
+		if b.botAdapter.nick == msg.Sender {
+			bot = b
+			break
+		}
+	}
+
+	if bot == nil {
+		return
+	}
+
+	// delete bot
+	bot.botAdapter.socket.Close()
+	delete(bf.botList, bot)
+}
+
 // bot 에게 받은 메시지를 Manager 에게 전달한다.
 // Manager에게 받은 메시지를 bot 에게 전달한다.
 func (bf *botFather) run() {
@@ -46,8 +66,8 @@ func (bf *botFather) run() {
 			}
 
 			switch msg.Action {
-			case "block-drop", "block-rotate", "block-left", "block-right", "block-down":
-				// TODO: send to manager
+			case "leave-room":
+				bf.deleteBot(msg)
 			}
 
 		case msg, ok := <-bf.fromManager:

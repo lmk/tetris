@@ -99,8 +99,8 @@ func (b *Bot) runMsgHandler() {
 
 		msg, ok := <-b.botAdapter.toBot
 		if !ok {
-			Error.Println("runMsgHandler", b.botAdapter.nick, "channel closed")
-			return
+			Trace.Println("runMsgHandler", b.botAdapter.nick, "channel closed")
+			break
 		}
 		Trace.Println("runMsgHandler", b.botAdapter.nick, msg.Action)
 
@@ -119,10 +119,12 @@ func (b *Bot) runMsgHandler() {
 
 		case "leave-room":
 			if b.leaveRoom(msg) {
-				return
+				close(b.botAdapter.toBot)
 			}
 		}
 	}
+
+	Trace.Println("runMsgHandler", b.botAdapter.nick, "end")
 }
 
 func (b *Bot) runActionLoop() {
@@ -135,4 +137,6 @@ func (b *Bot) runActionLoop() {
 			Sender: b.botAdapter.nick,
 		}
 	}
+
+	Trace.Println("runActionLoop", b.botAdapter.nick, "end")
 }

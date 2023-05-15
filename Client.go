@@ -58,7 +58,7 @@ func (client *Client) Read() {
 
 		err := client.socket.ReadJSON(&msg)
 		if err != nil {
-			fmt.Println("Read Error:", err)
+			Trace.Println("Read Error", client.Nick, err)
 			break
 		}
 
@@ -74,6 +74,8 @@ func (client *Client) Read() {
 
 		client.ws.broadcast <- &msg
 	}
+
+	Trace.Println("Read end:", client.Nick)
 }
 
 func (client *Client) Write() {
@@ -81,7 +83,7 @@ func (client *Client) Write() {
 	defer func() {
 		client.socket.Close()
 		if r := recover(); r != nil {
-			Error.Println("Write panic:", r)
+			Error.Println("Write panic", client.Nick, r)
 		}
 	}()
 
@@ -95,9 +97,11 @@ func (client *Client) Write() {
 		} else {
 			err := client.socket.WriteJSON(message)
 			if err != nil {
-				Error.Println("Write Error:", err)
+				Trace.Println("Write Error", client.Nick, err)
 				break
 			}
 		}
 	}
+
+	Trace.Println("Write end:", client.Nick)
 }

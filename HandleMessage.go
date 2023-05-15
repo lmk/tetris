@@ -269,7 +269,7 @@ func (wss *WebsocketServer) actionGame(msg *Message) {
 	}
 	Trace.Println("actionGame s:", msg.Action, msg.Sender, len(game.Ch))
 	game.Ch <- msg
-	Trace.Println("actionGame e:", msg.Action, msg.Sender)
+	Trace.Println("actionGame e:", msg.Action, msg.Sender, len(game.Ch))
 }
 
 // addBot 봇 추가

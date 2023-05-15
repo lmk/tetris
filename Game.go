@@ -483,7 +483,7 @@ func (g *Game) run() {
 				g.gameOver()
 				g.currentBlockToBoard()
 				g.SendGameOver()
-				Trace.Print("block-drop")
+				Trace.Println("block-drop")
 			}
 			if !g.nextTern() {
 				return
@@ -495,7 +495,7 @@ func (g *Game) run() {
 				g.gameOver()
 				g.currentBlockToBoard()
 				g.SendGameOver()
-				Trace.Print("gift-full-blocks")
+				Trace.Println("gift-full-blocks")
 				return
 			}
 			g.SendSyncGame(msg.Action)
@@ -504,9 +504,9 @@ func (g *Game) run() {
 			if !g.toDown() && !g.nextTern() {
 				return
 			}
-			Trace.Print("auto-down s ", g.Owner, len(g.ManagerCh))
+			Trace.Println("auto-down s ", g.Owner, len(g.ManagerCh))
 			g.SendSyncGame(msg.Action)
-			Trace.Print("auto-down e ", g.Owner)
+			Trace.Println("auto-down e ", g.Owner, len(g.ManagerCh))
 
 		}
 	}
@@ -519,11 +519,11 @@ func (g *Game) autoDown() {
 
 		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
 
-		Trace.Print("autoDown s:", g.Owner, ",", len(g.Ch))
+		Trace.Println("autoDown s:", g.Owner, len(g.Ch))
 		g.Ch <- &Message{
 			Action: "auto-down",
 		}
-		Trace.Print("autoDown e:", g.Owner, ",", len(g.Ch))
+		Trace.Println("autoDown e:", g.Owner, len(g.Ch))
 
 		// Faster every minute
 		duration := time.Since(g.DurationTime)

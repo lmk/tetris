@@ -11,7 +11,6 @@ import (
 type BotAdapter struct {
 	toBot   chan *Message
 	fromBot chan *Message
-	done    chan struct{}
 	socket  *websocket.Conn
 	roomId  int
 	nick    string // bot nickname
@@ -30,7 +29,6 @@ func NewBotAdapter(roomId int) *BotAdapter {
 	botAdapter := &BotAdapter{
 		toBot:   make(chan *Message, MAX_CHAN),
 		fromBot: make(chan *Message, MAX_CHAN),
-		done:    make(chan struct{}),
 		roomId:  roomId,
 		socket:  conn,
 	}
@@ -77,19 +75,20 @@ func (ba *BotAdapter) startGame(msg *Message) {
 // Read : server -> bot
 func (ba *BotAdapter) Read() {
 	defer func() {
-		close(ba.done)
+		close(ba.fromBot)
 		if r := recover(); r != nil {
 			Error.Println("Write panic:", r)
 		}
 	}()
+
 	for {
 
 		var msg Message
 		err := ba.socket.ReadJSON(&msg)
 		if err != nil {
-			Error.Println("websocket handelr read:", err)
+			Trace.Println("websocket handelr read", ba.nick, err)
 			ba.socket.Close()
-			return
+			break
 		}
 
 		switch msg.Action {
@@ -113,6 +112,8 @@ func (ba *BotAdapter) Read() {
 			ba.toBot <- &msg
 		}
 	}
+
+	Trace.Println("Read", ba.nick, "end")
 }
 
 // Write : bot -> server
@@ -124,33 +125,22 @@ func (ba *BotAdapter) Write() {
 	}()
 
 	for {
-		select {
-		case <-ba.done:
-			return
-		case msg, ok := <-ba.fromBot:
-			if !ok {
-				Error.Println("websocket handelr write:", ba.nick, "channel closed")
-				return
-			}
-
-			err := ba.socket.WriteJSON(msg)
-			if err != nil {
-				Error.Println("websocket handelr write:", err)
-				return
-			}
-			// case <-interrupt:
-			// 	Info.Println("interrupt")
-
-			// 	err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			// 	if err != nil {
-			// 		Error.Println("write close:", err)
-			// 		return
-			// 	}
-			// 	select {
-			// 	case <-done:
-			// 	}
-			// 	return
+		msg, ok := <-ba.fromBot
+		if !ok {
+			Trace.Println("websocket handelr write:", ba.nick, "channel closed")
+			break
 		}
 
+		err := ba.socket.WriteJSON(msg)
+		if err != nil {
+			Error.Println("websocket handelr write:", err)
+			break
+		}
+
+		if msg.Action == "leave-room" {
+			BotFather.fromBot <- msg
+		}
 	}
+
+	Trace.Println("Write", ba.nick, "end")
 }
