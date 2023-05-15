@@ -21,7 +21,7 @@ func NewBotBigenner(bot *Bot) *BotBigenner {
 		bot:           bot,
 		incX:          NOT_FOUND,
 		incRotate:     0,
-		cycleMoving:   200,
+		cycleMoving:   400,
 		cycleThinking: 1500,
 	}
 }
