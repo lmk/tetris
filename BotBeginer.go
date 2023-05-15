@@ -50,7 +50,7 @@ func (b *BotBigenner) findXforDown() {
 
 	// drop 했을때 막히는 cell을 채워준다.
 	board := fillTailToUp(b.bot.Cell)
-	Trace.Print("board\n", cellsToString(board))
+	//Trace.Print("board\n", cellsToString(board))
 
 	var block Block
 	block.Clone(b.bot.CurrentBlock)
@@ -64,8 +64,8 @@ func (b *BotBigenner) findXforDown() {
 		trimed, margin := TrimShape(block.Shape)
 		trimed = fillTailToDown(trimed)
 
-		Trace.Printf("block %d, %d\n%s", block.Col, block.Row, cellsToString(trimed))
-		Trace.Println("margin:", margin)
+		//Trace.Printf("block %d, %d\n%s", block.Col, block.Row, cellsToString(trimed))
+		//Trace.Println("margin:", margin)
 
 		x, y := b.findCombine(trimed, board)
 		if x != NOT_FOUND && yBest < y+len(trimed) {
@@ -74,7 +74,7 @@ func (b *BotBigenner) findXforDown() {
 			rotateBest = rotate
 		}
 
-		Trace.Println("x, y, rotate, currentX:", x, y, rotate, block.Col)
+		//Trace.Println("x, y, rotate, currentX:", x, y, rotate, block.Col)
 
 		block.Rotate()
 	}
@@ -89,7 +89,7 @@ func (b *BotBigenner) findXforDown() {
 
 		incX = bx - cx
 
-		Trace.Println("not found bx, cx, xBest :", bx, cx, incX)
+		//Trace.Println("not found bx, cx, xBest :", bx, cx, incX)
 
 		rotateBest = 0
 	}
@@ -97,7 +97,7 @@ func (b *BotBigenner) findXforDown() {
 	b.incX = incX
 	b.incRotate = rotateBest
 
-	Trace.Println("incX, incRotate :", b.incX, b.incRotate)
+	//Trace.Println("incX, incRotate :", b.incX, b.incRotate)
 }
 
 func (b *BotBigenner) getNextAction() string {

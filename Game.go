@@ -519,11 +519,11 @@ func (g *Game) autoDown() {
 
 		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
 
-		Trace.Print("autoDown s:", g.Owner, len(g.Ch))
+		Trace.Print("autoDown s:", g.Owner, ",", len(g.Ch))
 		g.Ch <- &Message{
 			Action: "auto-down",
 		}
-		Trace.Print("autoDown e:", g.Owner, len(g.Ch))
+		Trace.Print("autoDown e:", g.Owner, ",", len(g.Ch))
 
 		// Faster every minute
 		duration := time.Since(g.DurationTime)
