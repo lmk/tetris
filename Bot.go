@@ -114,7 +114,7 @@ func (b *Bot) runMsgHandler() {
 		case "gift-full-blocks":
 			// 처리가 필요할까?
 
-		case "over-game":
+		case "over-game", "end-game":
 			b.end()
 
 		case "leave-room":
