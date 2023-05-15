@@ -76,7 +76,12 @@ func (ba *BotAdapter) startGame(msg *Message) {
 
 // Read : server -> bot
 func (ba *BotAdapter) Read() {
-	defer close(ba.done)
+	defer func() {
+		close(ba.done)
+		if r := recover(); r != nil {
+			Error.Println("Write panic:", r)
+		}
+	}()
 	for {
 
 		var msg Message
@@ -99,6 +104,11 @@ func (ba *BotAdapter) Read() {
 		case "start-game":
 			ba.startGame(&msg)
 
+		case "over-game":
+			if msg.Sender == ba.nick {
+				ba.toBot <- &msg
+			}
+
 		default:
 			ba.toBot <- &msg
 		}
@@ -107,6 +117,12 @@ func (ba *BotAdapter) Read() {
 
 // Write : bot -> server
 func (ba *BotAdapter) Write() {
+	defer func() {
+		if r := recover(); r != nil {
+			Error.Println("Write panic:", r)
+		}
+	}()
+
 	for {
 		select {
 		case <-ba.done:
