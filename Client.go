@@ -44,6 +44,9 @@ func (client *Client) Read() {
 	defer func() {
 		client.ws.unregister <- client
 		client.socket.Close()
+		if r := recover(); r != nil {
+			Error.Println("Write panic:", r)
+		}
 	}()
 
 	// client.socket.SetReadLimit(512)
@@ -77,6 +80,9 @@ func (client *Client) Write() {
 
 	defer func() {
 		client.socket.Close()
+		if r := recover(); r != nil {
+			Error.Println("Write panic:", r)
+		}
 	}()
 
 	for {
