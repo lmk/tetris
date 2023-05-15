@@ -95,7 +95,7 @@ var messageHandler = function(msg) {
       for (let nick of Object.keys(msg.roomList[0].nicks)) {
         let el = $('#enermy-game-'+nick);
         if ($('#my-nick').text() != nick && el.length == 0) {
-          let html = '<span id="enermy-game-'+nick+'" class="col-sm-4 column">'
+          let html = '<span id="enermy-game-'+nick+'" class="col-sm-1 column">'
               + '<div id="enermy-name">'+nick+'</div>'
               + '<div id="enermy-score-'+nick+'">0</div>'
               + '<div id="enermy-board-'+nick+'" class="enermy-board"></span></div>';
