@@ -283,6 +283,11 @@ func (wss *WebsocketServer) addBot(msg *Message) {
 func (wss *WebsocketServer) HandleMessage(msg *Message) {
 	Trace.Println("HandleMessage:", msg.Action, msg.Sender)
 
+	if !wss.isVaildRoomId(msg.RoomId) || !wss.isVaildNick(msg.RoomId, msg.Sender) {
+		Error.Println("Invalid RoomId or Nick:", msg)
+		return
+	}
+
 	switch msg.Action {
 	case "set-nick":
 		wss.setNick(msg)
