@@ -13,6 +13,10 @@ type Config struct {
 	Domain     string `yaml:"domain,omitempty"`
 	Port       int    `yaml:"port,omitempty"`
 	Https      bool   `yaml:"https,omitempty"`
+	Log        struct {
+		Datetime bool `yaml:"datetime,omitempty"`
+		SrcFile  bool `yaml:"srcfile,omitempty"`
+	} `yaml:"log,omitempty"`
 }
 
 func (c *Config) Read(fn string) error {
@@ -33,7 +37,7 @@ func (c *Config) makePretty() string {
 
 	buf, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		Info.Printf(err.Error())
+		fmt.Println(err.Error())
 	}
 
 	return string(buf)
@@ -55,13 +59,11 @@ func (c *Config) checkRequired() error {
 func initConf() {
 	err := conf.Read(conf.ConfigFile)
 	if err != nil {
-		Error.Printf("cannot read config file: %v", err)
+		fmt.Printf("cannot read config file: %v", err)
 	}
 
 	err = conf.checkRequired()
 	if err != nil {
-		Error.Printf("config check failed: %v", err)
+		fmt.Printf("config check failed: %v", err)
 	}
-
-	Info.Printf("config: %s", conf.makePretty())
 }

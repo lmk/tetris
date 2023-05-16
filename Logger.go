@@ -20,19 +20,28 @@ func InitLogger(
 	warningHandle io.Writer,
 	errorHandle io.Writer) {
 
-	Trace = log.New(traceHandle,
-		"TRACE: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
+	flagTrace := 0
+	flagInfo := 0
+	flagWarning := 0
+	flagError := 0
 
-	Info = log.New(infoHandle,
-		"INFO: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
+	if conf.Log.Datetime {
+		flagTrace |= log.Ldate | log.Ltime | log.Lshortfile
+		flagInfo |= log.Ldate | log.Ltime | log.Lshortfile
+		flagWarning |= log.Ldate | log.Ltime | log.Lshortfile
+		flagError |= log.Ldate | log.Ltime | log.Lshortfile
+	}
 
-	Warning = log.New(warningHandle,
-		"WARNING: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
+	if conf.Log.SrcFile {
+		flagTrace |= log.Lshortfile
+		flagInfo |= log.Lshortfile
+		flagWarning |= log.Lshortfile
+		flagError |= log.Lshortfile
+	}
 
-	Error = log.New(errorHandle,
-		"ERROR: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
+	Trace = log.New(traceHandle, "TRACE: ", flagTrace)
+	Info = log.New(infoHandle, "INFO: ", flagInfo)
+	Warning = log.New(warningHandle, "WARNING: ", flagWarning)
+	Error = log.New(errorHandle, "ERROR: ", flagError)
+
 }

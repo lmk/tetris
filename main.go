@@ -29,6 +29,8 @@ func init() {
 	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
 	flag.IntVar(&conf.Port, "port", 8090, "port")
 	flag.BoolVar(&conf.Https, "https", true, "https mode")
+	flag.BoolVar(&conf.Log.Datetime, "log-datetime", false, "log datetime enable")
+	flag.BoolVar(&conf.Log.SrcFile, "log-srcfile", true, "log source file enable")
 	flag.Usage = usage
 }
 
@@ -68,9 +70,11 @@ func runServer() {
 
 func main() {
 
+	initConf()
+
 	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 
-	initConf()
+	Info.Printf("config: %s", conf.makePretty())
 
 	runServer()
 }
