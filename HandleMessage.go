@@ -267,9 +267,9 @@ func (wss *WebsocketServer) actionGame(msg *Message) {
 		Warning.Println("Not playing:", msg.Sender)
 		return
 	}
-	Trace.Println("actionGame s:", msg.Action, msg.Sender, len(game.Ch))
+	Debug.Println("actionGame s:", msg.Action, msg.Sender, len(game.Ch))
 	game.Ch <- msg
-	Trace.Println("actionGame e:", msg.Action, msg.Sender, len(game.Ch))
+	Debug.Println("actionGame e:", msg.Action, msg.Sender, len(game.Ch))
 }
 
 // addBot 봇 추가

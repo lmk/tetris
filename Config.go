@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 
@@ -16,7 +17,26 @@ type Config struct {
 	Log        struct {
 		Datetime bool `yaml:"datetime,omitempty"`
 		SrcFile  bool `yaml:"srcfile,omitempty"`
+		Info     bool `yaml:"info,omitempty"`
+		Warning  bool `yaml:"warning,omitempty"`
+		Error    bool `yaml:"error,omitempty"`
+		Trace    bool `yaml:"trace,omitempty"`
+		Debug    bool `yaml:"debug,omitempty"`
 	} `yaml:"log,omitempty"`
+}
+
+func initFlag() {
+	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
+	flag.IntVar(&conf.Port, "port", 8090, "port")
+	flag.BoolVar(&conf.Https, "https", true, "https mode")
+	flag.BoolVar(&conf.Log.Datetime, "log-datetime", false, "log datetime enable")
+	flag.BoolVar(&conf.Log.SrcFile, "log-srcfile", true, "log source file enable")
+	flag.BoolVar(&conf.Log.Info, "log-info", true, "log info enable")
+	flag.BoolVar(&conf.Log.Warning, "log-warning", true, "log warning enable")
+	flag.BoolVar(&conf.Log.Error, "log-error", true, "log error enable")
+	flag.BoolVar(&conf.Log.Trace, "log-trace", true, "log trace enable")
+	flag.BoolVar(&conf.Log.Debug, "log-debug", false, "log debug enable")
+	flag.Usage = usage
 }
 
 func (c *Config) Read(fn string) error {

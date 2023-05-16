@@ -46,14 +46,17 @@ func (wss *WebsocketServer) getFreeRoomID() int {
 	return -1
 }
 
-func (wss *WebsocketServer) report() {
+func (wss *WebsocketServer) Report() {
 
 	for range time.Tick(time.Second * 10) {
 
 		report := ""
 
+		if len(wss.rooms) == 0 || (len(wss.rooms) == 1 && len(wss.rooms[WAITITNG_ROOM].Clients) == 0) {
+			continue
+		}
+
 		for roomId, info := range wss.rooms {
-			//report += fmt.Sprintf("[%v:%d:%s],", roomId, len(info.Clients), info.Owner)
 			report += fmt.Sprintf("[%v:%s:[", roomId, info.Owner)
 			for nick := range info.Clients {
 				report += fmt.Sprintf("%s,", nick)
@@ -62,17 +65,13 @@ func (wss *WebsocketServer) report() {
 			report += "]]"
 		}
 
-		if report != "" && report != "[0::]" {
-			Info.Println("REPORT:" + report)
-		}
+		Info.Println("REPORT:" + report)
 	}
 }
 
 func (wss *WebsocketServer) Run() {
 
 	Info.Println("Websocket Server is running...")
-
-	go wss.report()
 
 	for {
 

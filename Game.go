@@ -504,9 +504,9 @@ func (g *Game) run() {
 			if !g.toDown() && !g.nextTern() {
 				return
 			}
-			Trace.Println("auto-down s ", g.Owner, len(g.ManagerCh))
+			Debug.Println("auto-down s ", g.Owner, len(g.ManagerCh))
 			g.SendSyncGame(msg.Action)
-			Trace.Println("auto-down e ", g.Owner, len(g.ManagerCh))
+			Debug.Println("auto-down e ", g.Owner, len(g.ManagerCh))
 
 		}
 	}
@@ -519,11 +519,11 @@ func (g *Game) autoDown() {
 
 		time.Sleep(time.Millisecond * time.Duration(g.CycleMs))
 
-		Trace.Println("autoDown s:", g.Owner, len(g.Ch))
+		Debug.Println("autoDown s:", g.Owner, len(g.Ch))
 		g.Ch <- &Message{
 			Action: "auto-down",
 		}
-		Trace.Println("autoDown e:", g.Owner, len(g.Ch))
+		Debug.Println("autoDown e:", g.Owner, len(g.Ch))
 
 		// Faster every minute
 		duration := time.Since(g.DurationTime)

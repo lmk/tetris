@@ -25,13 +25,7 @@ func init() {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	// config
-	flag.StringVar(&conf.ConfigFile, "config", "config.yaml", "config file")
-	flag.IntVar(&conf.Port, "port", 8090, "port")
-	flag.BoolVar(&conf.Https, "https", true, "https mode")
-	flag.BoolVar(&conf.Log.Datetime, "log-datetime", false, "log datetime enable")
-	flag.BoolVar(&conf.Log.SrcFile, "log-srcfile", true, "log source file enable")
-	flag.Usage = usage
+	initFlag()
 }
 
 // 웹 서버를 실행하는 함수
@@ -40,6 +34,7 @@ func runServer() {
 	// 웹소켓 핸들러 생성한다.
 	wsServer := NewWebsocketServer()
 	go wsServer.Run()
+	go wsServer.Report()
 
 	r := gin.Default()
 
@@ -72,7 +67,7 @@ func main() {
 
 	initConf()
 
-	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 
 	Info.Printf("config: %s", conf.makePretty())
 
