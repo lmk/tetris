@@ -62,7 +62,7 @@ func (wss *WebsocketServer) report() {
 			report += "]]"
 		}
 
-		if report != "" {
+		if report != "" && report != "[0::]" {
 			Info.Println("REPORT:" + report)
 		}
 	}
