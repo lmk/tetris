@@ -119,9 +119,15 @@ func SaveTopRank(nick string, score int) (int, error) {
 	if rank != -1 {
 		// 파일을 다시 쓴다.
 		file.Seek(0, 0)
-		_, err := file.WriteString(buf)
+		err := file.Truncate(0) // 기존 내용을 완전히 지움
+		if err != nil {
+			Error.Printf("Invalid truncate: %s", err)
+			return rank, err
+		}
+		_, err = file.WriteString(buf)
 		if err != nil {
 			Error.Printf("Invalid write: %s", err)
+			return rank, err
 		}
 	}
 

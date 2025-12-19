@@ -62,6 +62,17 @@ func (client *Client) Read() {
 			break
 		}
 
+		// 메시지 발신자가 현재 클라이언트와 일치하는지 검증
+		if msg.Sender != "" && msg.Sender != client.Nick {
+			Warning.Printf("Message sender mismatch: claimed=%s, actual=%s", msg.Sender, client.Nick)
+			msg.Sender = client.Nick // 강제로 올바른 발신자로 교정
+		}
+
+		// Sender가 비어있으면 현재 클라이언트 닉네임으로 설정
+		if msg.Sender == "" {
+			msg.Sender = client.Nick
+		}
+
 		msg.RoomId = Manager.getRoomId(msg.Sender)
 
 		if !client.ws.isVaildRoomId(msg.RoomId) || !client.ws.isVaildNick(msg.RoomId, msg.Sender) {

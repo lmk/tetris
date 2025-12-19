@@ -1,0 +1,34 @@
+# Battle Tetris Server Configuration Example
+# Copy this file to config.yaml and modify as needed
+
+# Server domain (default: localhost)
+domain: localhost
+
+# Server port (default: 8090)
+port: 8090
+
+# HTTPS mode (default: true)
+https: false
+
+# CORS Allowed Origins
+# For development: use ["*"] to allow all origins
+# For production: specify exact domains/IPs that should be allowed
+allowed_origins:
+  - "*"  # Development: Allow all origins
+
+# Production example:
+# allowed_origins:
+#   - "http://yourdomain.com"
+#   - "https://yourdomain.com"
+#   - "http://192.168.1.100"  # Your server IP
+#   - "http://192.168.1.100:8090"
+
+# Logging configuration
+log:
+  datetime: false
+  srcfile: true
+  info: true
+  warning: true
+  error: true
+  trace: true
+  debug: false

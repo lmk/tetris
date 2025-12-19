@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	ConfigFile string `yaml:"-"`
-	Domain     string `yaml:"domain,omitempty"`
-	Port       int    `yaml:"port,omitempty"`
-	Https      bool   `yaml:"https,omitempty"`
-	Log        struct {
+	ConfigFile     string   `yaml:"-"`
+	Domain         string   `yaml:"domain,omitempty"`
+	Port           int      `yaml:"port,omitempty"`
+	Https          bool     `yaml:"https,omitempty"`
+	AllowedOrigins []string `yaml:"allowed_origins,omitempty"` // CORS allowed origins
+	Log            struct {
 		Datetime bool `yaml:"datetime,omitempty"`
 		SrcFile  bool `yaml:"srcfile,omitempty"`
 		Info     bool `yaml:"info,omitempty"`
@@ -73,17 +74,28 @@ func (c *Config) checkRequired() error {
 		c.Port = 8090
 	}
 
+	// AllowedOrigins가 비어있으면 "*"(모든 출처 허용)을 의미
+	// 프로덕션에서는 config.yaml에 명시적으로 허용할 출처를 지정해야 함
+	// 예: ["http://yourdomain.com", "https://yourdomain.com"]
+	if len(c.AllowedOrigins) == 0 {
+		// 개발 환경: 모든 출처 허용 (편의성)
+		c.AllowedOrigins = []string{"*"}
+	}
+
 	return nil
 }
 
-func initConf() {
+func initConf() error {
 	err := conf.Read(conf.ConfigFile)
 	if err != nil {
-		fmt.Printf("cannot read config file: %v", err)
+		// config 파일이 없으면 기본값 사용
+		fmt.Printf("Warning: cannot read config file: %v (using defaults)\n", err)
 	}
 
 	err = conf.checkRequired()
 	if err != nil {
-		fmt.Printf("config check failed: %v", err)
+		return fmt.Errorf("config check failed: %v", err)
 	}
+
+	return nil
 }

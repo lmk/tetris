@@ -65,7 +65,11 @@ func runServer() {
 
 func main() {
 
-	initConf()
+	err := initConf()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fatal: %v\n", err)
+		os.Exit(1)
+	}
 
 	InitLogger(os.Stdout, os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 

@@ -3,17 +3,48 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
+const (
+	MAX_ROOMS = 100 // maximum number of rooms
+)
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			// 브라우저가 아닌 클라이언트는 Origin 헤더가 없을 수 있음
+			return true
+		}
+
+		// AllowedOrigins 확인
+		for _, allowed := range conf.AllowedOrigins {
+			// "*"는 모든 출처 허용 (개발 환경용)
+			if allowed == "*" {
+				return true
+			}
+
+			// 정확한 출처 매칭
+			if origin == allowed {
+				return true
+			}
+
+			// 포트 포함 매칭 (예: http://localhost:8090)
+			if origin == allowed+":"+fmt.Sprintf("%d", conf.Port) {
+				return true
+			}
+		}
+
+		Warning.Printf("CORS: Rejected origin: %s", origin)
+		return false
 	},
 }
 
@@ -22,6 +53,7 @@ type WebsocketServer struct {
 	broadcast  chan *Message
 	register   chan *Client
 	unregister chan *Client
+	mu         sync.RWMutex // protects rooms map
 }
 
 func NewWebsocketServer() *WebsocketServer {
@@ -36,8 +68,10 @@ func NewWebsocketServer() *WebsocketServer {
 }
 
 func (wss *WebsocketServer) getFreeRoomID() int {
+	wss.mu.RLock()
+	defer wss.mu.RUnlock()
 
-	for i := 1; i < 100; i++ {
+	for i := 1; i < MAX_ROOMS; i++ {
 		if _, ok := wss.rooms[i]; !ok {
 			return i
 		}
@@ -50,22 +84,32 @@ func (wss *WebsocketServer) Report() {
 
 	for range time.Tick(time.Second * 10) {
 
-		report := ""
+		wss.mu.RLock()
+		roomCount := len(wss.rooms)
+		waitingRoom := wss.rooms[WAITITNG_ROOM]
+		wss.mu.RUnlock()
 
-		if len(wss.rooms) == 0 || (len(wss.rooms) == 1 && len(wss.rooms[WAITITNG_ROOM].Clients) == 0) {
+		if roomCount == 0 || (roomCount == 1 && waitingRoom != nil && len(waitingRoom.Clients) == 0) {
 			continue
 		}
 
+		var report strings.Builder
+		wss.mu.RLock()
 		for roomId, info := range wss.rooms {
-			report += fmt.Sprintf("[%v:%s:[", roomId, info.Owner)
+			fmt.Fprintf(&report, "[%v:%s:[", roomId, info.Owner)
+			first := true
 			for nick := range info.Clients {
-				report += fmt.Sprintf("%s,", nick)
+				if !first {
+					report.WriteString(",")
+				}
+				report.WriteString(nick)
+				first = false
 			}
-			report = report[:len(report)-1]
-			report += "]]"
+			report.WriteString("]]")
 		}
+		wss.mu.RUnlock()
 
-		Info.Println("REPORT:" + report)
+		Info.Println("REPORT:" + report.String())
 	}
 }
 
@@ -78,12 +122,14 @@ func (wss *WebsocketServer) Run() {
 		select {
 
 		case client := <-wss.register:
+			wss.mu.Lock()
 			room := wss.rooms[WAITITNG_ROOM]
 			if room == nil {
 				wss.rooms[WAITITNG_ROOM] = NewRoomInfo(WAITITNG_ROOM, client, "Watting Room")
 			} else {
 				room.Clients[client.Nick] = client
 			}
+			wss.mu.Unlock()
 
 			Manager.Register(WAITITNG_ROOM, client)
 

@@ -5,6 +5,8 @@ import (
 )
 
 func (wss *WebsocketServer) isVaildRoomId(roomId int) bool {
+	wss.mu.RLock()
+	defer wss.mu.RUnlock()
 	if _, ok := wss.rooms[roomId]; ok {
 		return true
 	}
@@ -12,22 +14,42 @@ func (wss *WebsocketServer) isVaildRoomId(roomId int) bool {
 }
 
 func (wss *WebsocketServer) isVaildNick(roomId int, nick string) bool {
-	if _, ok := wss.rooms[roomId].Clients[nick]; ok {
-		return true
+	wss.mu.RLock()
+	defer wss.mu.RUnlock()
+	if room, ok := wss.rooms[roomId]; ok {
+		if _, ok := room.Clients[nick]; ok {
+			return true
+		}
 	}
 	return false
 }
 
 // sendInTheRoom 방에 있는 사용자에게 메시지를 보낸다.
 func (wss *WebsocketServer) sendInTheRoom(roomId int, msg *Message) {
-	for _, client := range wss.rooms[roomId].Clients {
+	wss.mu.RLock()
+	room, ok := wss.rooms[roomId]
+	wss.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	for _, client := range room.Clients {
 		client.send <- msg
 	}
 }
 
 // sendInTheRoomExceptSender Sender를 제외한 방에 있는 사용자에게 메시지를 보낸다.
 func (wss *WebsocketServer) sendInTheRoomExceptSender(roomId int, msg *Message) {
-	for _, client := range wss.rooms[roomId].Clients {
+	wss.mu.RLock()
+	room, ok := wss.rooms[roomId]
+	wss.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	for _, client := range room.Clients {
 		if client.Nick != msg.Sender {
 			client.send <- msg
 		}
@@ -42,16 +64,25 @@ func (wss *WebsocketServer) setNick(msg *Message) {
 	}
 
 	// nick 중복 체크
+	wss.mu.RLock()
 	for _, room := range wss.rooms {
 		for nick := range room.Clients {
 			if nick == msg.Data {
-				Manager.players[msg.Sender].Client.send <- &Message{Action: "error", Data: "nick duplicate"}
+				wss.mu.RUnlock()
+				Manager.mu.RLock()
+				player := Manager.players[msg.Sender]
+				Manager.mu.RUnlock()
+				if player != nil {
+					player.Client.send <- &Message{Action: "error", Data: "nick duplicate"}
+				}
 				return
 			}
 		}
 	}
+	wss.mu.RUnlock()
 
 	// 닉네임 변경
+	wss.mu.Lock()
 	client := wss.rooms[msg.RoomId].Clients[msg.Sender]
 	client.Nick = msg.Data
 	wss.rooms[msg.RoomId].Clients[client.Nick] = client
@@ -61,10 +92,13 @@ func (wss *WebsocketServer) setNick(msg *Message) {
 	if wss.rooms[msg.RoomId].Owner == msg.Sender {
 		wss.rooms[msg.RoomId].Owner = msg.Data
 	}
+	wss.mu.Unlock()
 
 	// manager도 변경
+	Manager.mu.Lock()
 	Manager.players[msg.Data] = Manager.players[msg.Sender]
 	delete(Manager.players, msg.Sender)
+	Manager.mu.Unlock()
 
 	// 방에 입장한 사용자에게 보내기
 	wss.sendInTheRoom(msg.RoomId, msg)
@@ -74,7 +108,10 @@ func (wss *WebsocketServer) setNick(msg *Message) {
 func (wss *WebsocketServer) newJoinRoom(msg *Message) {
 	roomId := -1
 
+	Manager.mu.RLock()
 	player, ok := Manager.players[msg.Sender]
+	Manager.mu.RUnlock()
+
 	if !ok {
 		Error.Println(msg.Sender, " player not found")
 		return
@@ -89,7 +126,9 @@ func (wss *WebsocketServer) newJoinRoom(msg *Message) {
 			Error.Println("room id not found")
 			return
 		}
+		wss.mu.Lock()
 		wss.rooms[roomId] = NewRoomInfo(roomId, player.Client, "room "+strconv.Itoa(roomId))
+		wss.mu.Unlock()
 	} else {
 		// 방에 입장한다.
 		roomId, _ = strconv.Atoi(msg.Data)
@@ -110,26 +149,36 @@ func (wss *WebsocketServer) newJoinRoom(msg *Message) {
 }
 
 func (wss *WebsocketServer) InRoom(roomId int, nick string) bool {
+	Manager.mu.RLock()
 	player, ok := Manager.players[nick]
+	Manager.mu.RUnlock()
+
 	if !ok {
 		Error.Println(nick, " player not found")
 		return false
 	}
 
 	player.RoomId = roomId
+
+	wss.mu.Lock()
 	wss.rooms[roomId].Clients[nick] = player.Client
+	wss.mu.Unlock()
 
 	// 방에 입장한 사용자에게 보내기
 	msg := &Message{
 		Action: "join-room",
 		RoomId: roomId,
 		Sender: nick}
+
+	wss.mu.RLock()
 	msg.RoomList = appendRoomInfo(msg.RoomList, wss.rooms[roomId])
+	roomState := wss.rooms[roomId].GetState()
+	wss.mu.RUnlock()
 
 	wss.sendInTheRoom(roomId, msg)
 
 	// 이미 play 중이면 옵져버 상태로 설정
-	if wss.rooms[roomId].GetState() == "playing" {
+	if roomState == "playing" {
 		player.Client.Game.Ch <- &Message{Action: "observer"}
 	}
 
@@ -138,39 +187,55 @@ func (wss *WebsocketServer) InRoom(roomId int, nick string) bool {
 
 func (wss *WebsocketServer) OutRoom(roomId int, nick string) bool {
 
-	if _, ok := wss.rooms[roomId]; !ok {
+	wss.mu.Lock()
+	room, ok := wss.rooms[roomId]
+	if !ok {
+		wss.mu.Unlock()
 		Error.Println("room not found, roomID:", roomId)
 		return false
 	}
 
-	delete(wss.rooms[roomId].Clients, nick)
-	if roomId != WAITITNG_ROOM && len(wss.rooms[roomId].Clients) == 0 {
+	delete(room.Clients, nick)
+	clientCount := len(room.Clients)
+
+	if roomId != WAITITNG_ROOM && clientCount == 0 {
 		// delete room
 		delete(wss.rooms, roomId)
+		wss.mu.Unlock()
 	} else {
 		// change owner
-		if wss.rooms[roomId].Owner == nick {
-			for _, client := range wss.rooms[roomId].Clients {
-				wss.rooms[roomId].Owner = client.Nick
+		newOwner := room.Owner
+		if room.Owner == nick {
+			// 첫 번째 클라이언트를 새 방장으로 지정 (맵 순회 순서는 무작위지만 일단 하나 선택)
+			for _, client := range room.Clients {
+				newOwner = client.Nick
 				break
 			}
 
-			if wss.rooms[roomId].Owner == nick && roomId == WAITITNG_ROOM {
-				wss.rooms[roomId].Owner = ""
+			if newOwner == nick && roomId == WAITITNG_ROOM {
+				newOwner = ""
 			}
+			room.Owner = newOwner
 		}
+
+		roomState := room.State
+		wss.mu.Unlock()
 
 		// 방에 입장한 사용자에게 보내기
 		msg := &Message{
 			Action: "leave-room",
 			RoomId: roomId,
 			Sender: nick}
+
+		wss.mu.RLock()
 		msg.RoomList = appendRoomInfo(msg.RoomList, wss.rooms[roomId])
+		wss.mu.RUnlock()
 
 		wss.sendInTheRoom(msg.RoomId, msg)
 
 		// 게임 오버 전파
-		if roomId != WAITITNG_ROOM && wss.rooms[roomId].State == "playing" && Manager.getClient(nick).Game.IsPlaying() {
+		client := Manager.getClient(nick)
+		if roomId != WAITITNG_ROOM && roomState == "playing" && client != nil && client.Game != nil && client.Game.IsPlaying() {
 			msg.Action = "over-game"
 			Manager.overGame(msg)
 		}
@@ -218,6 +283,9 @@ func (wss *WebsocketServer) leaveRoom(msg *Message) {
 }
 
 func (wss *WebsocketServer) getAllRoomInfo() []RoomInfo {
+	wss.mu.RLock()
+	defer wss.mu.RUnlock()
+
 	roomList := make([]RoomInfo, 0, len(wss.rooms))
 
 	for _, roomInfo := range wss.rooms {
@@ -233,7 +301,16 @@ func (wss *WebsocketServer) listRoom(msg *Message) {
 	msg.RoomList = wss.getAllRoomInfo()
 
 	// 요청한 사용자에게 보내기
-	wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
+	wss.mu.RLock()
+	room, ok := wss.rooms[msg.RoomId]
+	wss.mu.RUnlock()
+
+	if ok {
+		client := room.Clients[msg.Sender]
+		if client != nil {
+			client.send <- msg
+		}
+	}
 }
 
 func (wss *WebsocketServer) listRank(msg *Message) {
@@ -242,16 +319,38 @@ func (wss *WebsocketServer) listRank(msg *Message) {
 		Error.Println("listRank count error:", err, msg.Data)
 		count = 5
 	}
+	if count <= 0 {
+		count = 5
+	}
 	msg.RankList = Manager.getRankList(count)
 
 	if msg.RankList != nil && len(msg.RankList) > 0 {
-		wss.rooms[msg.RoomId].Clients[msg.Sender].send <- msg
+		wss.mu.RLock()
+		room, ok := wss.rooms[msg.RoomId]
+		wss.mu.RUnlock()
+
+		if ok {
+			client := room.Clients[msg.Sender]
+			if client != nil {
+				client.send <- msg
+			}
+		}
 	}
 }
 
 func (wss *WebsocketServer) startGame(msg *Message) {
-	for _, client := range wss.rooms[msg.RoomId].Clients {
-		client.Game.Start()
+	wss.mu.RLock()
+	room, ok := wss.rooms[msg.RoomId]
+	wss.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	for _, client := range room.Clients {
+		if client.Game != nil {
+			client.Game.Start()
+		}
 	}
 }
 

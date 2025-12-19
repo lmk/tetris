@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 )
 
 type Player struct {
@@ -12,6 +13,7 @@ type Player struct {
 type manager struct {
 	players map[string]*Player // players list (nick, player)
 	ch      chan *Message      // Game -> Manager
+	mu      sync.RWMutex       // protects players map
 }
 
 var Manager *manager
@@ -40,15 +42,19 @@ func (gm *manager) Register(roomId int, client *Client) {
 		Client: client,
 	}
 
+	gm.mu.Lock()
 	gm.players[client.Nick] = player
+	gm.mu.Unlock()
 }
 
 func (gm *manager) Unregister(client *Client) {
 
 	// remove player
+	gm.mu.Lock()
 	if gm.players[client.Nick] != nil {
 		delete(gm.players, client.Nick)
 	}
+	gm.mu.Unlock()
 
 	if client.Game != nil && !client.Game.IsGameOver() {
 		client.Game.Stop()
@@ -100,7 +106,11 @@ func (gm *manager) SaveTop(nick string, score int) int {
 }
 
 func (gm *manager) startGame(msg *Message) {
-	if player, ok := gm.players[msg.Sender]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[msg.Sender]
+	gm.mu.RUnlock()
+
+	if ok {
 		msg.RoomId = player.RoomId
 		player.Client.send <- msg
 	} else {
@@ -112,7 +122,11 @@ func (gm *manager) overGame(msg *Message) {
 
 	Info.Printf("overGame: %s", msg.Sender)
 
-	if player, ok := gm.players[msg.Sender]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[msg.Sender]
+	gm.mu.RUnlock()
+
+	if ok {
 		msg.RoomId = player.RoomId
 		player.Client.ws.broadcast <- msg
 
@@ -149,7 +163,11 @@ func (gm *manager) overGame(msg *Message) {
 }
 
 func (gm *manager) endGame(nick string) {
-	if player, ok := gm.players[nick]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[nick]
+	gm.mu.RUnlock()
+
+	if ok {
 
 		if player.Client.Game == nil {
 			Warning.Println(nick, "Game is nil")
@@ -159,7 +177,7 @@ func (gm *manager) endGame(nick string) {
 		player.Client.Game.Stop()
 
 		// 승자에게 플레이어수 x 100점 추가
-		player.Client.Game.AddScore(100 * (len(player.Client.ws.rooms[player.RoomId].Clients) - 1))
+		player.Client.Game.AddScore(WINNER_BONUS * (len(player.Client.ws.rooms[player.RoomId].Clients) - 1))
 
 		// top 안에 있으면 추가
 		rank := gm.SaveTop(nick, player.Client.Game.Score)
@@ -183,7 +201,11 @@ func (gm *manager) endGame(nick string) {
 }
 
 func (gm *manager) syncGame(msg *Message) {
-	if player, ok := gm.players[msg.Sender]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[msg.Sender]
+	gm.mu.RUnlock()
+
+	if ok {
 		msg.RoomId = player.RoomId
 		player.Client.ws.broadcast <- msg
 	} else {
@@ -192,7 +214,11 @@ func (gm *manager) syncGame(msg *Message) {
 }
 
 func (gm *manager) eraseBlocks(msg *Message) {
-	if player, ok := gm.players[msg.Sender]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[msg.Sender]
+	gm.mu.RUnlock()
+
+	if ok {
 		msg.RoomId = player.RoomId
 		player.Client.send <- msg
 	} else {
@@ -201,7 +227,11 @@ func (gm *manager) eraseBlocks(msg *Message) {
 }
 
 func (gm *manager) giftFullBlocks(msg *Message) {
-	if player, ok := gm.players[msg.Sender]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[msg.Sender]
+	gm.mu.RUnlock()
+
+	if ok {
 		msg.RoomId = player.RoomId
 
 		player.Client.ws.broadcast <- msg
@@ -219,7 +249,11 @@ func (gm *manager) giftFullBlocks(msg *Message) {
 }
 
 func (gm *manager) getGame(nick string) *Game {
-	if player, ok := gm.players[nick]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[nick]
+	gm.mu.RUnlock()
+
+	if ok {
 		return player.Client.Game
 	} else {
 		return nil
@@ -229,7 +263,11 @@ func (gm *manager) getGame(nick string) *Game {
 // getRoomId
 // return -1 if not found
 func (gm *manager) getRoomId(nick string) int {
-	if player, ok := gm.players[nick]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[nick]
+	gm.mu.RUnlock()
+
+	if ok {
 		return player.RoomId
 	} else {
 		return -1
@@ -237,7 +275,11 @@ func (gm *manager) getRoomId(nick string) int {
 }
 
 func (gm *manager) getClient(nick string) *Client {
-	if player, ok := gm.players[nick]; ok {
+	gm.mu.RLock()
+	player, ok := gm.players[nick]
+	gm.mu.RUnlock()
+
+	if ok {
 		return player.Client
 	} else {
 		return nil

@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,12 @@ const (
 	BLOCK_COLUMN = 4
 
 	EMPTY = 0
+
+	MIN_CYCLE_MS     = 100  // minimum cycle time in ms
+	INITIAL_CYCLE_MS = 1000 // initial cycle time in ms
+	CYCLE_DECREASE   = 100  // cycle time decrease per minute
+	SCORE_PER_LINE   = 10   // score per removed line
+	WINNER_BONUS     = 100  // bonus score per opponent for winner
 )
 
 type Game struct {
@@ -27,6 +34,7 @@ type Game struct {
 	NextBlockIndexs []int         `json:"-"` // next block indexs 10
 	CycleMs         int           `json:"-"` // cycle time in ms
 	DurationTime    time.Time     `json:"-"` // duration time
+	mu              sync.RWMutex  `json:"-"` // protects Cell and game state
 }
 
 // NewGame create a new game
@@ -40,7 +48,7 @@ func NewGame(ch chan *Message, owner string) *Game {
 		State:        "ready",
 		Score:        0,
 		CurrentBlock: NewBlock((rand.Intn(len(SHAPES)) + 1)),
-		CycleMs:      1000,
+		CycleMs:      INITIAL_CYCLE_MS,
 		Cell:         make([][]int, BOARD_ROW),
 	}
 
@@ -56,7 +64,7 @@ func NewGame(ch chan *Message, owner string) *Game {
 func (g *Game) reset() {
 	g.Score = 0
 	g.CurrentBlock = NewBlock((rand.Intn(len(SHAPES)) + 1))
-	g.CycleMs = 1000
+	g.CycleMs = INITIAL_CYCLE_MS
 	g.Cell = make([][]int, BOARD_ROW)
 	g.NextBlockIndexs = []int{}
 
@@ -224,64 +232,42 @@ func appendRow(cell [][]int, row []int) [][]int {
 }
 
 // procFullLine
-// currentBlock 이 있는 row만 검사
+// currentBlock을 board에 복사한 후 full line을 검사
 // full line이면 row를 삭제하고, 위 row를 한칸씩 내림
-// full line이 아니면, currentBlock를 board에 복사
 func (g *Game) procFullLine() ([][]int, []int) {
+
+	// 먼저 현재 블록을 보드에 복사
+	g.currentBlockToBoard()
 
 	removedRowIndexs := []int{}
 	removedLines := [][]int{}
 
+	// 현재 블록이 영향을 미친 행만 검사
+	minRow := g.CurrentBlock.Row
 	maxRow := BOARD_ROW
 	if g.CurrentBlock.Row+BLOCK_ROW < BOARD_ROW {
 		maxRow = g.CurrentBlock.Row + BLOCK_ROW
 	}
 
-	for r := g.CurrentBlock.Row; r < maxRow; r++ {
-
-		y := r - g.CurrentBlock.Row
-		x := 0
-
+	for r := minRow; r < maxRow; r++ {
 		isFull := true
 
+		// 해당 행이 가득 찼는지 확인
 		for c := 0; c < BOARD_COLUMN; c++ {
-
-			x = c - g.CurrentBlock.Col
-
-			// if cell is empty, check current block
 			if g.Cell[r][c] == EMPTY {
-
-				if g.CurrentBlock.inBlock(r, c) {
-
-					if g.CurrentBlock.Shape[y][x] == EMPTY {
-						isFull = false
-						break
-					}
-				} else {
-					isFull = false
-					break
-				}
+				isFull = false
+				break
 			}
 		}
 
 		if isFull {
-
 			removedLines = appendRow(removedLines, g.Cell[r])
 			removedRowIndexs = append(removedRowIndexs, r)
 
 			g.shiftDownCell(r)
 
 			// score는 삭제된 line 수 가중치를 줘서 계산
-			g.AddScore(10 * len(removedLines))
-
-		} else {
-
-			// currnet block to board
-			for i := 0; i < BLOCK_COLUMN; i++ {
-				if g.CurrentBlock.Shape[y][i] != EMPTY {
-					g.Cell[r][g.CurrentBlock.Col+i] = g.CurrentBlock.ShapeIndex
-				}
-			}
+			g.AddScore(SCORE_PER_LINE * len(removedLines))
 		}
 	}
 
@@ -390,19 +376,20 @@ func (g *Game) toDrop() bool {
 }
 
 func (g *Game) receiveFullBlocks(blocks [][]int) bool {
+	// 새로운 블록을 받으면 아래에서 밀어올려지므로,
+	// 위쪽의 행들이 밀려나게 됨
 
-	g.Cell = append(g.Cell, blocks...)
-
-	// check gamevoer 밀린 위쪽 cell에 블럭이 있으면 게임오버
+	// 먼저 밀려날 위쪽 행들에 블록이 있는지 확인 (게임오버 체크)
 	for r := 0; r < len(blocks); r++ {
-		for c := 0; c < len(g.Cell[r]); c++ {
+		for c := 0; c < BOARD_COLUMN; c++ {
 			if g.Cell[r][c] != EMPTY {
 				return false
 			}
 		}
 	}
 
-	g.Cell = g.Cell[len(blocks):]
+	// 위쪽 len(blocks)개 행을 제거하고 아래에 새 블록 추가
+	g.Cell = append(g.Cell[len(blocks):], blocks...)
 
 	return true
 }
@@ -480,11 +467,14 @@ func (g *Game) run() {
 
 		case "block-drop":
 			if !g.toDrop() {
+				// 블록을 놓을 수 없으면 게임 오버
 				g.gameOver()
 				g.currentBlockToBoard()
 				g.SendGameOver()
-				Trace.Println("block-drop")
+				Trace.Println("block-drop: game over (cannot drop)")
+				return
 			}
+			// 다음 턴으로 (procFullLine에서 currentBlockToBoard 호출됨)
 			if !g.nextTern() {
 				return
 			}
@@ -501,8 +491,14 @@ func (g *Game) run() {
 			g.SendSyncGame(msg.Action)
 
 		case "auto-down":
-			if !g.toDown() && !g.nextTern() {
-				return
+			if !g.toDown() {
+				if !g.nextTern() {
+					// Game over
+					g.gameOver()
+					g.currentBlockToBoard()
+					g.SendGameOver()
+					return
+				}
 			}
 			Debug.Println("auto-down s ", g.Owner, len(g.ManagerCh))
 			g.SendSyncGame(msg.Action)
@@ -528,7 +524,13 @@ func (g *Game) autoDown() {
 		// Faster every minute
 		duration := time.Since(g.DurationTime)
 		if duration > time.Minute*1 {
-			g.CycleMs -= 100
+			if g.CycleMs > MIN_CYCLE_MS {
+				g.CycleMs -= CYCLE_DECREASE
+				// CycleMs가 최소값 이하로 떨어지지 않도록 보장
+				if g.CycleMs < MIN_CYCLE_MS {
+					g.CycleMs = MIN_CYCLE_MS
+				}
+			}
 			g.DurationTime = time.Now()
 		}
 	}

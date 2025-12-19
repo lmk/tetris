@@ -138,7 +138,14 @@ func (ba *BotAdapter) Write() {
 		}
 
 		if msg.Action == "leave-room" {
-			BotFather.fromBot <- msg
+			// BotFather.fromBot 채널이 닫혔는지 확인하고 안전하게 전송
+			select {
+			case BotFather.fromBot <- msg:
+				// 성공적으로 전송
+			default:
+				// 채널이 닫혔거나 가득 참
+				Warning.Println("BotFather.fromBot channel unavailable")
+			}
 		}
 	}
 
