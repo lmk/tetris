@@ -160,11 +160,20 @@ var messageHandler = function(msg) {
     case 'end-game':
 
       $('.triangle-container').hide();
-      
-      if (msg.data > 0) {
+
+      // msg.data가 "winner" 또는 "winner:순위" 형식으로 옴
+      if (msg.data && msg.data.startsWith('winner')) {
         $('#winner-nick').text(msg.sender);
-        $('#winner-rank').text(msg.data);
         $('#winner-score').text((msg.score==undefined)?0:msg.score);
+
+        // 순위가 있으면 표시
+        let parts = msg.data.split(':');
+        if (parts.length > 1) {
+          $('#winner-rank').text(parts[1]);
+        } else {
+          $('#winner-rank').text('-');
+        }
+
         $('#modal-over-game').modal('hide');
         $('#modal-winner').modal('show');
       } else {
@@ -175,7 +184,7 @@ var messageHandler = function(msg) {
       if (msg.roomList[0].owner == $('#my-nick').text()) {
         createStartButton();
         createAddBotButton();
-      }      
+      }
       break;
 
     case 'sync-game':

@@ -249,6 +249,8 @@ func (g *Game) procFullLine() ([][]int, []int) {
 		maxRow = g.CurrentBlock.Row + BLOCK_ROW
 	}
 
+	// 아래에서 위로 검사하면서 가득 찬 라인 삭제
+	// 라인을 삭제하면 위의 라인들이 내려오므로, 같은 행을 다시 검사해야 함
 	for r := minRow; r < maxRow; r++ {
 		isFull := true
 
@@ -265,6 +267,11 @@ func (g *Game) procFullLine() ([][]int, []int) {
 			removedRowIndexs = append(removedRowIndexs, r)
 
 			g.shiftDownCell(r)
+
+			// 라인을 삭제하면 위의 라인들이 내려오므로
+			// 같은 행(r)을 다시 검사하기 위해 인덱스를 하나 감소
+			r--
+			maxRow--
 
 			// score는 삭제된 line 수 가중치를 줘서 계산
 			g.AddScore(SCORE_PER_LINE * len(removedLines))

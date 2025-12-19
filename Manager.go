@@ -190,8 +190,12 @@ func (gm *manager) endGame(nick string) {
 		}
 		msg.RoomList = appendRoomInfo(msg.RoomList, player.Client.ws.rooms[player.RoomId])
 
+		// 승자는 항상 승리 메시지를 보여주기 위해 "winner"로 설정
+		// 랭킹에 들었으면 순위도 함께 표시
 		if rank > 0 {
-			msg.Data = strconv.Itoa(rank)
+			msg.Data = "winner:" + strconv.Itoa(rank)
+		} else {
+			msg.Data = "winner"
 		}
 
 		player.Client.ws.broadcast <- msg
